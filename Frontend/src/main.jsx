@@ -7,7 +7,7 @@ import "./fonts.css"; // fonts
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/" >
       <App />
     </BrowserRouter>
   </React.StrictMode>
