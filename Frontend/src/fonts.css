@@ -1,0 +1,32 @@
+@font-face {
+  font-family: "Orbitron";
+  src: url("./assets/fonts/Orbitron-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Orbitron";
+  src: url("./assets/fonts/Orbitron-Bold.ttf") format("truetype");
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "FiraCode";
+  src: url("./assets/fonts/FiraCode-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+@font-face {
+  font-family: "FiraCode";
+  src: url("./assets/fonts/FiraCode-Bold.ttf") format("truetype");
+  font-weight: 400;
+}
+@font-face {
+  font-family: "FiraCode";
+  src: url("./assets/fonts/FiraCode-Medium.ttf") format("truetype");
+  font-weight: 400;
+}
+@font-face {
+  font-family: "FiraCode";
+  src: url("./assets/fonts/FiraCode-Light.ttf") format("truetype");
+  font-weight: 400;
+}
