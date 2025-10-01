@@ -105,3 +105,44 @@ export async function generateCodeComments(code) {
     throw error;
   }
 }
+
+
+/**
+ * Uses Gemini AI to find bugs AND return corrected code
+ */
+export async function generateBugReport(code) {
+  const prompt = `
+    You are an expert code reviewer named 'CodeXpert'.
+    Analyze the following code for any potential bugs, logical errors, or edge-case issues.
+    Respond ONLY in JSON with this structure:
+    {
+      "mistakes": [
+        "Description of mistake 1",
+        "Description of mistake 2"
+      ],
+      "fixedCode": "The full corrected code as a single string. Newlines must be escaped as \\n."
+    }
+
+    Original code:
+    \`\`\`
+    ${code}
+    \`\`\`
+  `;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro-latest' });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = await response.text();
+
+    // --- CLEANUP ---
+    text = text.replace(/```[a-z]*\n?/gi, '').replace(/```$/g, '').trim();
+
+    // Parse JSON safely
+    const data = JSON.parse(text);
+    return data; // { mistakes: [...], fixedCode: "..." }
+  } catch (error) {
+    console.error('Gemini API error in generateBugReport:', error);
+    throw error;
+  }
+}

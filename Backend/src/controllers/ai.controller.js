@@ -51,3 +51,20 @@ export async function addCodeComments(req, res) {
     res.status(500).json({ message: 'Failed to add comments to the code.' });
   }
 }
+
+export async function findBugs(req, res) {
+  const { code } = req.body;
+
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ message: 'Code must be a non-empty string.' });
+  }
+
+  try {
+    const bugData = await aiService.generateBugReport(code);
+    res.status(200).json(bugData); // { mistakes: [...], fixedCode: "..." }
+  } catch (error) {
+    console.error('Error finding bugs:', error);
+    res.status(500).json({ message: 'Failed to analyze bugs in the code.' });
+  }
+}
+

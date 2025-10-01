@@ -9,6 +9,9 @@ router.post('/', aiController.initiateAnalysis);
 // Route to add comments to the code
 // POST /api/v1/analyze/comment
 router.post('/comment', aiController.addCodeComments);
+// Route to find bugs in the code
+// POST /api/v1/analyze/bugs
+router.post('/bugs', aiController.findBugs);
 
 
 // Route to check the status and get the result of the analysis
