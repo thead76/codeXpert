@@ -8,25 +8,50 @@ const BugFinder = () => {
   const [mistakes, setMistakes] = useState([]);
   const [popupMessage, setPopupMessage] = useState("");
   const [popupType, setPopupType] = useState(""); // "error" or "success"
+  const [loading, setLoading] = useState(false);
 
-  // Dummy function (replace with backend call later)
-  const analyzeCode = () => {
+  // Call backend to analyze bugs
+  const analyzeCode = async () => {
     if (!code.trim()) {
       setPopupType("error");
       setPopupMessage("Please paste some code before analyzing.");
       return;
     }
 
-    // Mock data
-    setMistakes([
-      "Line 5: Missing semicolon",
-      "Line 12: Use === instead of ==",
-    ]);
-    setFixedCode(
-`function hello() {
-  console.log("Hello, world!");
-}`
-    );
+    setLoading(true);
+    setMistakes([]);
+    setFixedCode("");
+
+    try {
+      const response = await fetch(
+        "http://localhost:8888/api/v1/analyze/bugs",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Failed to analyze code.");
+      }
+
+      const data = await response.json();
+
+      // Backend returns both mistakes array and fixedCode string
+      setMistakes(data.mistakes || []);
+      setFixedCode(data.fixedCode || "");
+
+      setPopupType("success");
+      setPopupMessage("✅ Analysis completed successfully!");
+    } catch (error) {
+      console.error(error);
+      setPopupType("error");
+      setPopupMessage(error.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const copyToClipboard = () => {
@@ -57,7 +82,9 @@ const BugFinder = () => {
       <div className="flex flex-col md:flex-row gap-6 flex-1">
         {/* Left: Code Editor */}
         <div className="flex-1 flex flex-col bg-[#1a103d] rounded-2xl shadow-lg p-4">
-          <h2 className="text-lg font-semibold text-pink-400 mb-2">Paste Your Code</h2>
+          <h2 className="text-lg font-semibold text-pink-400 mb-2">
+            Paste Your Code
+          </h2>
           <textarea
             className="flex-1 bg-[#0f0425] text-white rounded-xl p-4 font-mono resize-none outline-none"
             placeholder="// Paste your code here..."
@@ -66,15 +93,18 @@ const BugFinder = () => {
           />
           <button
             onClick={analyzeCode}
-            className="mt-4 bg-gradient-to-r from-indigo-500 to-pink-500 text-white px-6 py-2 rounded-full font-semibold transition-transform duration-300 hover:scale-105"
+            disabled={loading}
+            className="mt-4 bg-gradient-to-r from-indigo-500 to-pink-500 text-white px-6 py-2 rounded-full font-semibold transition-transform duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Analyze Code
+            {loading ? "Analyzing..." : "Analyze Code"}
           </button>
         </div>
 
         {/* Right: Suggestions */}
         <div className="flex-1 flex flex-col bg-[#1a103d] rounded-2xl shadow-lg p-4">
-          <h2 className="text-lg font-semibold text-pink-400 mb-2">Suggestions & Fix</h2>
+          <h2 className="text-lg font-semibold text-pink-400 mb-2">
+            Suggestions & Fix
+          </h2>
 
           {/* Mistakes List */}
           <div className="mb-4">
