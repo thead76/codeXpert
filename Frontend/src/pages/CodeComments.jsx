@@ -7,28 +7,44 @@ const CodeComments = () => {
   const [commentedCode, setCommentedCode] = useState("");
   const [popupMessage, setPopupMessage] = useState("");
   const [popupType, setPopupType] = useState(""); // "error" | "success"
+  const [loading, setLoading] = useState(false);
 
-  // Dummy function (replace with backend later)
-  const generateComments = () => {
+  // Call backend API to generate commented code
+  const generateComments = async () => {
     if (!code.trim()) {
       setPopupType("error");
       setPopupMessage("Please paste some code before generating comments.");
       return;
     }
 
-    // Mock Example
-    setCommentedCode(
-`// Function to greet the user
-function greetUser(name) {
-  // If no name is provided, greet as Guest
-  if (!name) {
-    console.log("Hello, Guest!");
-  } else {
-    // Otherwise, greet with their actual name
-    console.log(\`Hello, \${name}!\`);
-  }
-}`
-    );
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        "http://localhost:8888/api/v1/analyze/comment",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Failed to generate comments");
+      }
+
+      const data = await response.json();
+      setCommentedCode(data.commentedCode || "");
+      setPopupType("success");
+      setPopupMessage("✅ Comments generated successfully!");
+    } catch (error) {
+      console.error(error);
+      setPopupType("error");
+      setPopupMessage(error.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const copyToClipboard = () => {
@@ -58,7 +74,9 @@ function greetUser(name) {
       <div className="flex flex-col md:flex-row gap-6 flex-1">
         {/* Left: Code Editor */}
         <div className="flex-1 flex flex-col bg-[#1a103d] rounded-2xl shadow-lg p-4">
-          <h2 className="text-lg font-semibold text-pink-400 mb-2">Paste Your Code</h2>
+          <h2 className="text-lg font-semibold text-pink-400 mb-2">
+            Paste Your Code
+          </h2>
           <textarea
             className="flex-1 bg-[#0f0425] text-white rounded-xl p-4 font-mono resize-none outline-none"
             placeholder="// Paste your code here..."
@@ -67,15 +85,18 @@ function greetUser(name) {
           />
           <button
             onClick={generateComments}
-            className="mt-4 bg-gradient-to-r from-indigo-500 to-pink-500 text-white px-6 py-2 rounded-full font-semibold transition-transform duration-300 hover:scale-105"
+            disabled={loading}
+            className="mt-4 bg-gradient-to-r from-indigo-500 to-pink-500 text-white px-6 py-2 rounded-full font-semibold transition-transform duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Generate Comments
+            {loading ? "Generating..." : "Generate Comments"}
           </button>
         </div>
 
         {/* Right: Commented Code */}
         <div className="flex-1 flex flex-col bg-[#1a103d] rounded-2xl shadow-lg p-4">
-          <h2 className="text-lg font-semibold text-pink-400 mb-2">Commented Code</h2>
+          <h2 className="text-lg font-semibold text-pink-400 mb-2">
+            Commented Code
+          </h2>
           <div className="flex-1 bg-[#0f0425] rounded-xl p-4 overflow-auto relative">
             <pre className="text-green-400 font-mono whitespace-pre-wrap">
               {commentedCode || "// Commented code will appear here..."}
