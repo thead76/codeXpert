@@ -1,0 +1,35 @@
+import * as aiService from '../services/ai.service.js';
+
+/**
+ * Controller to start a new code analysis job.
+ */
+export async function initiateAnalysis(req, res) {
+  const { code } = req.body;
+
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ message: 'Code must be a non-empty string.' });
+  }
+
+  // Start the analysis and get the job ID
+  const jobId = aiService.startAnalysis(code);
+
+  // Immediately respond with 202 Accepted and the job ID
+  res.status(202).json({ 
+    message: 'Analysis started. Use the jobId to check the status.',
+    jobId: jobId 
+  });
+}
+
+/**
+ * Controller to get the status and result of an analysis job.
+ */
+export async function getAnalysisStatus(req, res) {
+  const { jobId } = req.params;
+  const analysis = aiService.getAnalysis(jobId);
+
+  if (!analysis) {
+    return res.status(404).json({ message: 'Analysis job not found.' });
+  }
+
+  res.status(200).json(analysis);
+}

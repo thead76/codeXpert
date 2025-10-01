@@ -1,0 +1,23 @@
+{
+  "name": "codexpert-backend",
+  "version": "1.0.0",
+  "description": "Code Quality Analyzer API",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node -r dotenv/config server.js",
+    "dev": "nodemon --exec \"node -r dotenv/config server.js\""
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.15.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
