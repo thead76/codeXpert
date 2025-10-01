@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Copy } from "lucide-react";
+import axios from "axios";
+
+// --- Configuration for the backend API ---
+// Make sure this port matches your backend server's port
+const API_BASE_URL = "http://localhost:8888/api/v1/analyze";
+const POLLING_INTERVAL = 3000; // Check status every 3 seconds
 
 const CodeReview = () => {
   const [code, setCode] = useState("");
@@ -9,31 +15,97 @@ const CodeReview = () => {
   const [improvedCode, setImprovedCode] = useState("");
   const [popupMessage, setPopupMessage] = useState("");
   const [popupType, setPopupType] = useState(""); // "error" | "success"
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Dummy analysis (replace with backend later)
-  const reviewCode = () => {
+  // useRef is used to store the interval ID so we can clear it
+  const pollingIntervalRef = useRef(null);
+
+  /**
+   * Clears any active polling interval.
+   */
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
+
+  /**
+   * Polls the backend for the analysis status using the jobId.
+   * @param {string} jobId - The ID of the analysis job to check.
+   */
+  const pollForStatus = (jobId) => {
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const statusResponse = await axios.get(
+          `${API_BASE_URL}/status/${jobId}`
+        );
+        const { status, result } = statusResponse.data;
+
+        if (status === "complete") {
+          stopPolling();
+          // Map backend response fields to frontend state variables
+          setReviewScore(result.qualityScore);
+          setSuggestions(result.improvementPoints);
+          setImprovedCode(result.improvedCode);
+          setIsLoading(false);
+        } else if (status === "error") {
+          stopPolling();
+          setPopupType("error");
+          setPopupMessage(
+            result.message || "An error occurred during analysis."
+          );
+          setIsLoading(false);
+        }
+        // If status is "pending", do nothing and let the interval run again.
+      } catch (error) {
+        stopPolling();
+        console.error("Error polling for status:", error);
+        setPopupType("error");
+        setPopupMessage(
+          "Could not get analysis status. Please check the server."
+        );
+        setIsLoading(false);
+      }
+    }, POLLING_INTERVAL);
+  };
+
+  /**
+   * Main function to initiate the code review process.
+   */
+  const reviewCode = async () => {
     if (!code.trim()) {
       setPopupType("error");
       setPopupMessage("Please paste some code before review.");
       return;
     }
 
-    // Mocked data
-    setReviewScore(72); // % out of 100
-    setSuggestions([
-      "Use meaningful variable names.",
-      "Add comments for better readability.",
-      "Consider breaking large functions into smaller ones.",
-    ]);
-    setImprovedCode(
-`function greetUser(name) {
-  if (!name) {
-    console.log("Hello, Guest!");
-  } else {
-    console.log(\`Hello, \${name}!\`);
-  }
-}`
-    );
+    setIsLoading(true);
+    setReviewScore(0);
+    setSuggestions([]);
+    setImprovedCode("");
+    setPopupMessage("");
+    stopPolling(); // Stop any previous polling
+
+    try {
+      // Step 1: Start the analysis and get a job ID.
+      const initialResponse = await axios.post(API_BASE_URL, { code });
+      const { jobId } = initialResponse.data;
+
+      if (jobId) {
+        // Step 2: Start polling for the result using the job ID.
+        pollForStatus(jobId);
+      } else {
+        throw new Error("Did not receive a valid Job ID.");
+      }
+    } catch (error) {
+      console.error("Error initiating code review:", error);
+      setPopupType("error");
+      setPopupMessage(
+        "Failed to start review. Please check if the backend server is running and CORS is enabled."
+      );
+      setIsLoading(false);
+    }
   };
 
   const copyToClipboard = () => {
@@ -47,6 +119,7 @@ const CodeReview = () => {
     setPopupMessage("✅ Reviewed code copied to clipboard!");
   };
 
+  // --- JSX (Styling) is completely unchanged from your original code ---
   return (
     <motion.div
       className="bg-[#0f0425] min-h-screen px-6 md:px-12 py-12 flex flex-col"
@@ -55,15 +128,15 @@ const CodeReview = () => {
       exit={{ opacity: 0, y: -30 }}
       transition={{ duration: 0.6 }}
     >
-      {/* Heading */}
       <h1 className="text-3xl font-bold text-white mb-6 text-center">
-        📝 Code Review
+        📝 AI Code Reviewer
       </h1>
 
       <div className="flex flex-col md:flex-row gap-6 flex-1">
-        {/* Left: Code Editor */}
         <div className="flex-1 flex flex-col bg-[#1a103d] rounded-2xl shadow-lg p-4">
-          <h2 className="text-lg font-semibold text-pink-400 mb-2">Paste Your Code</h2>
+          <h2 className="text-lg font-semibold text-pink-400 mb-2">
+            Paste Your Code
+          </h2>
           <textarea
             className="flex-1 bg-[#0f0425] text-white rounded-xl p-4 font-mono resize-none outline-none"
             placeholder="// Paste your code here..."
@@ -72,17 +145,17 @@ const CodeReview = () => {
           />
           <button
             onClick={reviewCode}
-            className="mt-4 bg-gradient-to-r from-indigo-500 to-pink-500 text-white px-6 py-2 rounded-full font-semibold transition-transform duration-300 hover:scale-105"
+            disabled={isLoading}
+            className="mt-4 bg-gradient-to-r from-indigo-500 to-pink-500 text-white px-6 py-2 rounded-full font-semibold transition-transform duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Review Code
+            {isLoading ? "Analyzing..." : "Review Code"}
           </button>
         </div>
 
-        {/* Right: Review Output */}
         <div className="flex-1 flex flex-col bg-[#1a103d] rounded-2xl shadow-lg p-4">
-          <h2 className="text-lg font-semibold text-pink-400 mb-4">Review Summary</h2>
-
-          {/* Review Score */}
+          <h2 className="text-lg font-semibold text-pink-400 mb-4">
+            Review Summary
+          </h2>
           <div className="mb-4">
             <h3 className="text-white font-medium mb-2">Code Quality Score:</h3>
             <div className="w-full bg-gray-700 rounded-full h-4">
@@ -91,24 +164,26 @@ const CodeReview = () => {
                 style={{ width: `${reviewScore}%` }}
               ></div>
             </div>
-            <p className="text-gray-300 mt-2">{reviewScore ? `${reviewScore}%` : "Not reviewed yet."}</p>
+            <p className="text-gray-300 mt-2">
+              {reviewScore ? `${reviewScore}%` : "Not reviewed yet."}
+            </p>
           </div>
-
-          {/* Suggestions */}
           <div className="mb-4">
-            <h3 className="text-white font-medium mb-2">Suggestions for Improvement:</h3>
+            <h3 className="text-white font-medium mb-2">
+              Suggestions for Improvement:
+            </h3>
             {suggestions.length > 0 ? (
               <ul className="list-disc list-inside text-yellow-300 space-y-1">
                 {suggestions.map((s, idx) => (
-                  <li key={idx}>{s}</li>
+                  <li key={idx}>
+                    {s.point} (Line: {s.line})
+                  </li>
                 ))}
               </ul>
             ) : (
               <p className="text-gray-400">No suggestions yet.</p>
             )}
           </div>
-
-          {/* Improved Code */}
           <div className="flex-1 bg-[#0f0425] rounded-xl p-4 overflow-auto relative">
             <pre className="text-green-400 font-mono whitespace-pre-wrap">
               {improvedCode || "// Improved code will appear here..."}
@@ -125,7 +200,6 @@ const CodeReview = () => {
         </div>
       </div>
 
-      {/* Popup */}
       <AnimatePresence>
         {popupMessage && (
           <motion.div
