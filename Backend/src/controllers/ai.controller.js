@@ -33,3 +33,21 @@ export async function getAnalysisStatus(req, res) {
 
   res.status(200).json(analysis);
 }
+/**
+ * Controller to add comments to a given code snippet.
+ */
+export async function addCodeComments(req, res) {
+  const { code } = req.body;
+
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ message: 'Code must be a non-empty string.' });
+  }
+
+  try {
+    const commentedCode = await aiService.generateCodeComments(code);
+    res.status(200).json({ commentedCode });
+  } catch (error) {
+    console.error('Error adding comments:', error);
+    res.status(500).json({ message: 'Failed to add comments to the code.' });
+  }
+}

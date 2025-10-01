@@ -72,3 +72,36 @@ export function getAnalysis(jobId) {
   }
   return jobs.get(jobId);
 }
+
+/**
+ * Generates code with comments using Gemini AI
+ */
+export async function generateCodeComments(code) {
+  const prompt = `
+    You are an expert code reviewer named 'CodeXpert'.
+    Your task is to return the code with meaningful inline comments explaining
+    each important part of the code. Do NOT change the logic.
+    Respond ONLY with the code, including the comments, no additional text.
+    
+    Original code:
+    \`\`\`
+    ${code}
+    \`\`\`
+  `;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro-latest' });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text();
+
+    // --- CLEANUP ---
+    // Remove Markdown code fences like ```java, ```python, ``` etc.
+    text = text.replace(/```[a-z]*\n?/gi, '').replace(/```$/g, '').trim();
+
+    return text; // Clean code with inline comments
+  } catch (error) {
+    console.error('Gemini API error in generateCodeComments:', error);
+    throw error;
+  }
+}
