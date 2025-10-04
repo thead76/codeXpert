@@ -1,23 +1,37 @@
 import express from 'express';
-import cors from 'cors'; // <-- 1. YEH LINE ADD KAREIN
+import cors from 'cors';
+import session from 'express-session';
+import passport from 'passport';
 import codeAnalyzerRoutes from './routes/ai.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js'; // <-- IMPORT
+import teamRoutes from './routes/team.routes.js'; // <-- IMPORT
+import './config/passport.js';
 
 const app = express();
 
-// Middleware to parse incoming JSON requests
 app.use(express.json());
+app.use(cors());
 
-// --- CORE FIX ---
-// Allow requests from any origin. This tells your server to accept requests
-// from your React app or any other frontend.
-app.use(cors()); // <-- 2. YEH LINE ADD KAREIN
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+  })
+);
 
-// Main route for a basic health check
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.get('/', (req, res) => {
-    res.send('CodeXpert API is alive and kicking!');
+  res.send('CodeXpert API is alive and kicking!');
 });
 
-// Mount the analyzer routes under the /api/v1/analyze prefix
+// Mount the routes
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/analyze', codeAnalyzerRoutes);
+app.use('/api/v1/users', userRoutes); // <-- ADD THIS LINE
+app.use('/api/v1/teams', teamRoutes); // <-- ADD THIS LINE
 
 export default app;
