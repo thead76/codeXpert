@@ -1,109 +1,105 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { X, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import RoleDropdown from "./RoleDropdown";
+import RoleDropdown from "./RoleDropdown"; // --- IMPORT THE COMPONENT ---
 
 const AuthModal = ({ type, isOpen, onClose }) => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, sendOtp, verifyOtpAndRegister, handleGoogleLogin } = useAuth();
 
-  const [authType, setAuthType] = useState(type || "login"); // "login" | "signup"
-  const [step, setStep] = useState("form"); // "form" | "otp"
+  const [isLogin, setIsLogin] = useState(type === "login");
+  const [step, setStep] = useState("form");
+
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
     otp: "",
+    role: "developer", // --- ADD 'role' TO FORM STATE WITH A DEFAULT ---
   });
 
-  const [serverOtp, setServerOtp] = useState("");
-  const [popupMessage, setPopupMessage] = useState("");
-  const [popupType, setPopupType] = useState("success");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setAuthType(type || "login");
+      setIsLogin(type === "login");
       setStep("form");
+      setError("");
       setForm({
         name: "",
         email: "",
         password: "",
         confirmPassword: "",
         otp: "",
+        role: "developer",
       });
-      setPopupMessage("");
     }
   }, [isOpen, type]);
 
-  // Fake send OTP
-  const sendOtp = async (email) =>
-    new Promise((resolve) => {
-      setTimeout(() => {
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        console.log("📩 OTP sent to", email, ":", otp);
-        resolve(otp);
-      }, 800);
-    });
+  const handleInputChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-  // Signup
-  const handleSignup = async () => {
-    if (!form.email || !form.password || form.password !== form.confirmPassword) {
-      setPopupType("error");
-      setPopupMessage("⚠️ Fill all fields & confirm password properly!");
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
     setLoading(true);
-    const otp = await sendOtp(form.email);
-    setServerOtp(otp);
-    setLoading(false);
-    setStep("otp");
-  };
-
-  // Verify OTP
-  const handleVerifyOtp = () => {
-    if (form.otp === serverOtp) {
-      setPopupType("success");
-      setPopupMessage("🎉 OTP Verified! Account created successfully.");
-      // ✅ mark logged in, then go to dashboard
-      login({ email: form.email, name: form.name });
-      setTimeout(() => {
-        onClose?.();
-        navigate("/dashboard", { replace: true });
-      }, 400);
-    } else {
-      setPopupType("error");
-      setPopupMessage("❌ Invalid OTP, try again!");
+    try {
+      await sendOtp(form.email);
+      setStep("otp");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to send OTP.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Login
-  const handleLogin = () => {
-    // Demo check; replace with backend later
-    const ok =
-      (form.email === "admin@codexpert.com" && form.password === "Admin@11") ||
-      (form.email && form.password);
+  const handleVerifyAndRegister = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      // --- PASS THE 'role' FROM THE FORM STATE ---
+      await verifyOtpAndRegister(
+        form.name,
+        form.email,
+        form.password,
+        form.otp,
+        form.role
+      );
+      onClose();
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.message || "OTP verification failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (ok) {
-      setPopupType("success");
-      setPopupMessage("✅ Welcome!");
-      // ✅ mark logged in, then go to dashboard
-      login({ email: form.email });
-      setTimeout(() => {
-        onClose?.();
-        navigate("/dashboard", { replace: true });
-      }, 400);
-    } else {
-      setPopupType("error");
-      setPopupMessage("❌ Wrong email or password!");
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await login(form.email, form.password);
+      onClose();
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid credentials.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -111,7 +107,6 @@ const AuthModal = ({ type, isOpen, onClose }) => {
 
   return (
     <>
-      {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -119,20 +114,17 @@ const AuthModal = ({ type, isOpen, onClose }) => {
         className="fixed inset-0 bg-black/60 z-40"
         onClick={onClose}
       />
-
-      {/* Modal */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
         onClick={onClose}
       >
         <div
           className="bg-[#1a103d] p-8 rounded-2xl shadow-2xl w-full max-w-md text-white relative border border-pink-500"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Close */}
           <button
             className="absolute top-4 right-4 text-gray-400 hover:text-white"
             onClick={onClose}
@@ -140,288 +132,180 @@ const AuthModal = ({ type, isOpen, onClose }) => {
             <X size={24} />
           </button>
 
-          {/* Switch */}
-          <AnimatePresence mode="wait">
-            {authType === "login" ? (
-              <motion.div
-                key="login"
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -40 }}
-                transition={{
-                  duration: 0.4, // exit duration (slower disappear)
-                  ease: "easeInOut",
-                  when: "beforeChildren", // makes sure it respects sequence
-                }}
+          <h2 className="text-2xl font-bold mb-6 text-center">
+            {isLogin ? "Welcome Back" : "Create Account"}
+          </h2>
+
+          {error && (
+            <div className="bg-red-900 border border-red-500 text-red-200 text-center p-3 rounded-lg mb-4">
+              {error}
+            </div>
+          )}
+
+          {!isLogin && step === "otp" ? (
+            <form onSubmit={handleVerifyAndRegister} className="space-y-4">
+              <p className="text-center text-gray-300">
+                An OTP has been sent to <strong>{form.email}</strong>. Please
+                enter it below.
+              </p>
+              <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg">
+                <Lock className="text-pink-400" size={20} />
+                <input
+                  type="text"
+                  name="otp"
+                  placeholder="Enter 6-Digit OTP"
+                  className="bg-transparent outline-none flex-1 text-center tracking-[8px]"
+                  value={form.otp}
+                  onChange={handleInputChange}
+                  maxLength={6}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-green-500 to-teal-500 py-3 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50"
               >
-                <h2 className="text-2xl font-bold mb-6 text-center">
-                  Welcome Back
-                </h2>
-                <div className="space-y-4">
+                {loading ? "Verifying..." : "Verify & Create Account"}
+              </button>
+              <p className="text-center text-gray-400 text-sm">
+                Didn't receive it?{" "}
+                <span
+                  onClick={() => setStep("form")}
+                  className="text-pink-400 cursor-pointer hover:underline"
+                >
+                  Go back and try again
+                </span>
+              </p>
+            </form>
+          ) : (
+            <>
+              <form
+                onSubmit={isLogin ? handleLogin : handleSendOtp}
+                className="space-y-4"
+              >
+                {!isLogin && (
                   <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg">
-                    <Mail className="text-pink-400" size={20} />
+                    <User className="text-pink-400" size={20} />
                     <input
-                      type="email"
-                      placeholder="Email"
+                      type="text"
+                      name="name"
+                      placeholder="Full Name"
                       className="bg-transparent outline-none flex-1"
-                      value={form.email}
-                      onChange={(e) =>
-                        setForm({ ...form, email: e.target.value })
-                      }
+                      value={form.name}
+                      onChange={handleInputChange}
+                      required
                     />
                   </div>
+                )}
 
+                {/* --- ADDED RoleDropdown HERE --- */}
+                {!isLogin && (
+                  <RoleDropdown
+                    value={form.role}
+                    onChange={(role) => setForm({ ...form, role })}
+                  />
+                )}
+
+                <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg">
+                  <Mail className="text-pink-400" size={20} />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email"
+                    className="bg-transparent outline-none flex-1"
+                    value={form.email}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg relative">
+                  <Lock className="text-pink-400" size={20} />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Password"
+                    className="bg-transparent outline-none flex-1"
+                    value={form.password}
+                    onChange={handleInputChange}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+
+                {!isLogin && (
                   <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg relative">
                     <Lock className="text-pink-400" size={20} />
                     <input
-                      type={showLoginPassword ? "text" : "password"}
-                      placeholder="Password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      placeholder="Confirm Password"
                       className="bg-transparent outline-none flex-1"
-                      value={form.password}
-                      onChange={(e) =>
-                        setForm({ ...form, password: e.target.value })
-                      }
+                      value={form.confirmPassword}
+                      onChange={handleInputChange}
+                      required
                     />
                     <button
                       type="button"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3 text-gray-400 hover:text-white"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="text-gray-400 hover:text-white"
                     >
-                      {showLoginPassword ? (
+                      {showConfirmPassword ? (
                         <EyeOff size={18} />
                       ) : (
                         <Eye size={18} />
                       )}
                     </button>
                   </div>
-
-                  <button
-                    onClick={handleLogin}
-                    className="w-full bg-gradient-to-r from-pink-500 to-indigo-500 py-3 rounded-lg font-semibold hover:scale-105 transition-transform"
-                  >
-                    Login
-                  </button>
-
-                  <div className="flex items-center my-4">
-                    <div className="flex-1 h-px bg-gray-600" />
-                    <span className="px-2 text-gray-400">OR</span>
-                    <div className="flex-1 h-px bg-gray-600" />
-                  </div>
-
-                  <button className="w-full flex items-center justify-center gap-3 border border-gray-500 py-3 rounded-lg font-semibold hover:bg-white hover:text-black transition">
-                    <FcGoogle size={22} /> Log in with Google
-                  </button>
-
-                  <p className="text-gray-400 text-sm text-center mt-4">
-                    Don’t have an account?{" "}
-                    <span
-                      className="text-pink-400 cursor-pointer hover:underline"
-                      onClick={() => setAuthType("signup")}
-                    >
-                      Sign Up
-                    </span>
-                  </p>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="signup"
-                initial={{ opacity: 0, x: -40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 40 }}
-                transition={{
-                  duration: 0.4,
-                  ease: "easeInOut",
-                  delay: 0.2,
-                }}
-              >
-                <h2 className="text-2xl font-bold mb-6 text-center">
-                  Create Account
-                </h2>
-                {step === "form" ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg">
-                      <User className="text-pink-400" size={20} />
-                      <input
-                        type="text"
-                        placeholder="Full Name"
-                        className="bg-transparent outline-none flex-1"
-                        value={form.name}
-                        onChange={(e) =>
-                          setForm({ ...form, name: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <RoleDropdown
-                      value={form.role}
-                      onChange={(role) => setForm({ ...form, role })}
-                    />
-
-                    <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg">
-                      <Mail className="text-pink-400" size={20} />
-                      <input
-                        type="email"
-                        placeholder="Email"
-                        className="bg-transparent outline-none flex-1"
-                        value={form.email}
-                        onChange={(e) =>
-                          setForm({ ...form, email: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg relative">
-                      <Lock className="text-pink-400" size={20} />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Password"
-                        className="bg-transparent outline-none flex-1"
-                        value={form.password}
-                        onChange={(e) =>
-                          setForm({ ...form, password: e.target.value })
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 text-gray-400 hover:text-white"
-                      >
-                        {showPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg relative">
-                      <Lock className="text-pink-400" size={20} />
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Confirm Password"
-                        className="bg-transparent outline-none flex-1"
-                        value={form.confirmPassword}
-                        onChange={(e) =>
-                          setForm({ ...form, confirmPassword: e.target.value })
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        className="absolute right-3 text-gray-400 hover:text-white"
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={handleSignup}
-                      disabled={loading}
-                      className="w-full bg-gradient-to-r from-pink-500 to-indigo-500 py-3 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50"
-                    >
-                      {loading ? "Sending OTP..." : "Send OTP"}
-                    </button>
-
-                    <div className="flex items-center my-4">
-                      <div className="flex-1 h-px bg-gray-600" />
-                      <span className="px-2 text-gray-400">OR</span>
-                      <div className="flex-1 h-px bg-gray-600" />
-                    </div>
-
-                    <button className="w-full flex items-center justify-center gap-3 border border-gray-500 py-3 rounded-lg font-semibold hover:bg-white hover:text-black transition">
-                      <FcGoogle size={22} /> Sign up with Google
-                    </button>
-
-                    <p className="text-gray-400 text-sm text-center mt-4">
-                      Already have an account?{" "}
-                      <span
-                        className="text-pink-400 cursor-pointer hover:underline"
-                        onClick={() => setAuthType("login")}
-                      >
-                        Login
-                      </span>
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-gray-300 text-center">
-                      Enter the 6-digit OTP sent to your email
-                    </p>
-                    <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg">
-                      <Lock className="text-pink-400" size={20} />
-                      <input
-                        type="text"
-                        placeholder="Enter OTP"
-                        className="bg-transparent outline-none flex-1 text-center tracking-[6px] font-bold text-xl"
-                        value={form.otp}
-                        onChange={(e) =>
-                          setForm({ ...form, otp: e.target.value })
-                        }
-                        maxLength={6}
-                      />
-                    </div>
-                    <button
-                      onClick={handleVerifyOtp}
-                      className="w-full bg-gradient-to-r from-pink-500 to-indigo-500 py-3 rounded-lg font-semibold hover:scale-105 transition-transform"
-                    >
-                      Verify OTP
-                    </button>
-                  </div>
                 )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-pink-500 to-indigo-500 py-3 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Processing..." : isLogin ? "Login" : "Send OTP"}
+                </button>
+              </form>
+
+              <div className="flex items-center my-4">
+                <div className="flex-1 h-px bg-gray-600" />
+                <span className="px-2 text-gray-400">OR</span>
+                <div className="flex-1 h-px bg-gray-600" />
+              </div>
+
+              <button
+                onClick={handleGoogleLogin}
+                className="w-full flex items-center justify-center gap-3 border border-gray-500 py-3 rounded-lg font-semibold hover:bg-white hover:text-black transition"
+              >
+                <FcGoogle size={22} />{" "}
+                {isLogin ? "Log in with Google" : "Sign up with Google"}
+              </button>
+
+              <p className="text-gray-400 text-sm text-center mt-4">
+                {isLogin
+                  ? "Don’t have an account? "
+                  : "Already have an account? "}
+                <span
+                  className="text-pink-400 cursor-pointer hover:underline"
+                  onClick={() => setIsLogin(!isLogin)}
+                >
+                  {isLogin ? "Sign Up" : "Login"}
+                </span>
+              </p>
+            </>
+          )}
         </div>
       </motion.div>
-
-      {/* Popup */}
-      <AnimatePresence>
-        {popupMessage && (
-          <motion.div
-            key="popup"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60"
-            onClick={() => setPopupMessage("")}
-          >
-            <div
-              className={`p-6 rounded-2xl shadow-2xl max-w-md w-[92%] text-center border ${
-                popupType === "error"
-                  ? "bg-[#1a103d] border-pink-500 text-white"
-                  : "bg-green-900 border-green-400 text-white"
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2
-                className={`text-2xl font-bold mb-3 ${
-                  popupType === "error" ? "text-pink-400" : "text-green-300"
-                }`}
-              >
-                {popupType === "error" ? "🚫 Oops!" : "✅ Success!"}
-              </h2>
-              <p className="text-gray-300 mb-6">{popupMessage}</p>
-              <button
-                onClick={() => setPopupMessage("")}
-                className={`px-6 py-2 rounded-lg font-semibold hover:scale-105 transition-transform ${
-                  popupType === "error"
-                    ? "bg-gradient-to-r from-pink-500 to-indigo-500"
-                    : "bg-gradient-to-r from-green-500 to-emerald-500"
-                }`}
-              >
-                Got it 👍
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 };

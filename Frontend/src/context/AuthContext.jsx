@@ -1,33 +1,113 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("cx_user")) || null;
-    } catch {
-      return null;
-    }
-  });
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [loading, setLoading] = useState(true);
+
+  // Set the base URL for all API requests
+  axios.defaults.baseURL = "http://localhost:8888/api/v1";
 
   useEffect(() => {
-    if (user) localStorage.setItem("cx_user", JSON.stringify(user));
-    else localStorage.removeItem("cx_user");
-  }, [user]);
+    const fetchUserProfile = async () => {
+      if (token) {
+        // Set the auth header for all subsequent requests
+        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        try {
+          // Fetch the full user profile from the new backend endpoint
+          const { data } = await axios.get("/users/profile");
+          setUser(data); // Store the real user object (name, email, role, etc.)
+        } catch (error) {
+          console.error(
+            "Failed to fetch user profile, token might be invalid.",
+            error
+          );
+          // If the token is invalid, log the user out
+          localStorage.removeItem("token");
+          setToken(null);
+          setUser(null);
+        }
+      } else {
+        // Ensure no auth header is present if there's no token
+        delete axios.defaults.headers.common["Authorization"];
+        setUser(null);
+      }
+      setLoading(false);
+    };
 
-  const login = (payload) => {
-    // payload: { email, name? }
-    setUser({ email: payload.email, name: payload.name || "" });
+    fetchUserProfile();
+  }, [token]);
+
+  const login = async (email, password) => {
+    const { data } = await axios.post("/auth/login", { email, password });
+    localStorage.setItem("token", data.token);
+    setToken(data.token); // This will trigger the useEffect to fetch the profile
   };
 
-  const logout = () => setUser(null);
+  const sendOtp = async (email) => {
+    await axios.post("/auth/send-otp", { email });
+  };
 
+  const verifyOtpAndRegister = async (name, email, password, otp, role) => {
+    const { data } = await axios.post("/auth/verify-otp", {
+      name,
+      email,
+      password,
+      otp,
+      role,
+    });
+    localStorage.setItem("token", data.token);
+    setToken(data.token);
+  };
+
+  // --- NEW FUNCTION: Send OTP for password reset ---
+  const sendPasswordOtp = async () => {
+    // No email is needed because the backend knows who the user is from the token
+    await axios.post("/users/profile/send-password-otp");
+  };
+
+  // --- NEW FUNCTION: Update the user's password ---
+  const updatePassword = async (passwordData) => {
+    // passwordData will be an object like { oldPassword, newPassword } or { otp, newPassword }
+    await axios.put("/users/profile/update-password", passwordData);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    setToken(null);
+    setUser(null);
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:8888/api/v1/auth/google";
+  };
+
+  const value = {
+    user,
+    setUser, // Expose setUser to allow components like the profile modal to update the context
+    token,
+    setToken,
+    loading,
+    login,
+    sendOtp,
+    verifyOtpAndRegister,
+    logout,
+    handleGoogleLogin,
+    sendPasswordOtp, // <-- Expose the new function
+    updatePassword, // <-- Expose the new function
+  };
+
+  // Render children only when the initial loading is complete
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
-}
-
-export const useAuth = () => useContext(AuthContext);
+};
