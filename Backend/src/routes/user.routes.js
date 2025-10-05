@@ -2,23 +2,26 @@ import express from 'express';
 import {
   getUserProfile,
   updateUserProfile,
-  sendPasswordResetOtp, // <-- IMPORT NEW
-  updateUserPassword,   // <-- IMPORT NEW
+  sendPasswordResetOtp,
+  updateUserPassword,
+  deleteUserProfile, // Account deletion ke liye import
 } from '../controllers/user.controller.js';
 import { isAuthenticated } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-// All routes here are protected because of this middleware
+// Is file ke sabhi routes protected hain
 router.use(isAuthenticated);
 
-// Routes for profile details
+// Profile details ke liye routes (GET, PUT, DELETE)
 router.route('/profile')
   .get(getUserProfile)
-  .put(updateUserProfile);
+  .put(updateUserProfile)
+  .delete(deleteUserProfile); // Account deletion ke liye DELETE route
 
-// --- NEW ROUTES FOR PASSWORD MANAGEMENT ---
+// Password management ke liye naye routes
 router.post('/profile/send-password-otp', sendPasswordResetOtp);
 router.put('/profile/update-password', updateUserPassword);
 
 export default router;
+

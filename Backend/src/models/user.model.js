@@ -18,10 +18,9 @@ const userSchema = new mongoose.Schema(
     googleId: {
       type: String,
     },
-    // --- UPDATED FIELDS FOR PROFILE ---
     role: {
       type: String,
-      enum: ['member', 'leader'], // Updated roles
+      enum: ['member', 'leader'],
       default: 'member',
     },
     phone: {
@@ -36,6 +35,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Password save hone se pehle use encrypt karne ka logic
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password') || !this.password) {
     return next();
@@ -45,6 +45,7 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
+// Password match karne ka method
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
@@ -52,3 +53,4 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 const User = mongoose.model('User', userSchema);
 
 export default User;
+
