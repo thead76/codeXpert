@@ -2,72 +2,66 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   X,
-  Mail,
   User,
   Phone,
   Github,
-  KeyRound,
-  ShieldCheck,
+  CheckCircle,
+  AlertTriangle,
+  Save,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import RoleDropdown from "./RoleDropdown";
-import PasswordInput from "./PasswordInput"; // Assuming you have a PasswordInput component for the eye icon
 
 const UserProfileModal = ({ isOpen, onClose }) => {
-  const { user, setUser, sendPasswordOtp, updatePassword } = useAuth();
+  const { user, setUser, logout } = useAuth();
+  const [view, setView] = useState("profile"); // 'profile' ya 'danger'
 
-  // State to switch between 'profile' details and 'password' update views
-  const [view, setView] = useState("profile");
-
-  // State for the main profile form
   const [profileData, setProfileData] = useState({
     name: "",
     phone: "",
     githubId: "",
     role: "",
   });
+  const [initialData, setInitialData] = useState({});
+  const [hasChanged, setHasChanged] = useState(false);
 
-  // State for the password update form
-  const [passwordData, setPasswordData] = useState({
-    oldPassword: "",
-    newPassword: "",
-    otp: "",
-  });
-  const [passwordUpdateMethod, setPasswordUpdateMethod] = useState("password"); // 'password' or 'otp'
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
 
-  // General state for messages, errors, and loading
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Reset all states when the modal is opened
   useEffect(() => {
-    if (isOpen) {
-      setView("profile");
+    if (isOpen && user) {
+      const data = {
+        name: user.name || "",
+        phone: user.phone || "",
+        githubId: user.githubId || "",
+        role: user.role || "member",
+      };
+      setProfileData(data);
+      setInitialData(data);
+      setHasChanged(false);
       setMessage("");
       setError("");
-      setPasswordData({ oldPassword: "", newPassword: "", otp: "" });
-      setPasswordUpdateMethod("password");
-      if (user) {
-        setProfileData({
-          name: user.name || "",
-          phone: user.phone || "",
-          githubId: user.githubId || "",
-          role: user.role || "member",
-        });
-      }
+      setView("profile");
+      setDeleteConfirmEmail("");
     }
   }, [user, isOpen]);
 
-  // Handlers for form input changes
-  const handleProfileChange = (e) =>
-    setProfileData({ ...profileData, [e.target.name]: e.target.value });
-  const handlePasswordChange = (e) =>
-    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
-  const handleRoleChange = (role) => setProfileData({ ...profileData, role });
+  useEffect(() => {
+    setHasChanged(JSON.stringify(profileData) !== JSON.stringify(initialData));
+  }, [profileData, initialData]);
 
-  // --- LOGIC FOR PROFILE UPDATE ---
+  const handleProfileChange = (e) => {
+    setProfileData({ ...profileData, [e.target.name]: e.target.value });
+  };
+  const handleRoleChange = (role) => {
+    setProfileData({ ...profileData, role });
+  };
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -78,52 +72,29 @@ const UserProfileModal = ({ isOpen, onClose }) => {
         "/users/profile",
         profileData
       );
-      setUser(updatedUser); // Update the user in the global context
+      setUser(updatedUser); // Global user state ko update karein
       setMessage("Profile updated successfully!");
-      setTimeout(() => onClose(), 1500);
+      setTimeout(() => onClose(), 2000);
     } catch (err) {
-      setError("Failed to update profile.");
+      setError("Failed to update profile. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- LOGIC FOR PASSWORD UPDATE ---
-  const handleRequestOtp = async () => {
+  const handleDeleteAccount = async () => {
     setLoading(true);
     setError("");
     setMessage("");
     try {
-      await sendPasswordOtp();
-      setMessage("OTP sent to your email!");
-      setPasswordUpdateMethod("otp"); // Switch to OTP input view
+      await axios.delete("/users/profile");
+      setMessage("Account deleted successfully. You will be logged out.");
+      setTimeout(() => {
+        logout(); // User ko logout karein
+        onClose();
+      }, 2500);
     } catch (err) {
-      setError("Failed to send OTP. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setMessage("");
-    try {
-      const payload =
-        passwordUpdateMethod === "otp"
-          ? { otp: passwordData.otp, newPassword: passwordData.newPassword }
-          : {
-              oldPassword: passwordData.oldPassword,
-              newPassword: passwordData.newPassword,
-            };
-
-      await updatePassword(payload);
-      setMessage("Password updated successfully!");
-      setTimeout(() => onClose(), 1500);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to update password.");
-    } finally {
+      setError("Failed to delete account. Please try again.");
       setLoading(false);
     }
   };
@@ -146,164 +117,161 @@ const UserProfileModal = ({ isOpen, onClose }) => {
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
         <div
-          className="bg-[#1a103d] p-8 rounded-2xl shadow-2xl w-full max-w-lg text-white relative border border-pink-500/50"
+          className="bg-[#1a103d] rounded-2xl shadow-2xl w-full max-w-3xl text-white border border-pink-500/50 flex flex-col md:flex-row overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            className="absolute top-4 right-4 text-gray-400 hover:text-white"
-            onClick={onClose}
-          >
-            <X size={24} />
-          </button>
+          {/* Left Side - Profile Summary */}
+          <div className="w-full md:w-1/3 bg-[#0f0425]/50 p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/10">
+            <div className="w-24 h-24 bg-gradient-to-br from-pink-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold font-orbitron shadow-lg">
+              <User size={48} />
+            </div>
+            <h3 className="text-2xl font-bold font-orbitron mt-4 text-center">
+              {profileData.name}
+            </h3>
+            <p className="text-sm text-gray-400 break-all text-center">
+              {user?.email}
+            </p>
+            <span className="mt-4 px-3 py-1 text-xs font-semibold rounded-full bg-cyan-500/20 text-cyan-300">
+              {profileData.role.charAt(0).toUpperCase() +
+                profileData.role.slice(1)}
+            </span>
+          </div>
 
-          <h2 className="text-3xl font-bold mb-6 text-center font-orbitron">
-            {view === "profile" ? "My Profile" : "Update Password"}
-          </h2>
+          {/* Right Side - Form */}
+          <div className="w-full md:w-2/3 p-8 flex flex-col">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              onClick={onClose}
+            >
+              <X size={24} />
+            </button>
+            <h2 className="text-3xl font-bold mb-2 font-orbitron">
+              Account Settings
+            </h2>
 
-          {/* Display feedback messages */}
-          {message && (
-            <p className="text-center mb-4 text-green-400">{message}</p>
-          )}
-          {error && <p className="text-center mb-4 text-red-400">{error}</p>}
+            <div className="flex border-b border-white/10 mb-6">
+              <button
+                onClick={() => setView("profile")}
+                className={`px-4 py-2 font-semibold transition ${
+                  view === "profile"
+                    ? "text-pink-400 border-b-2 border-pink-400"
+                    : "text-gray-400"
+                }`}
+              >
+                Profile
+              </button>
+              <button
+                onClick={() => setView("danger")}
+                className={`px-4 py-2 font-semibold transition ${
+                  view === "danger"
+                    ? "text-red-400 border-b-2 border-red-400"
+                    : "text-gray-400"
+                }`}
+              >
+                Danger Zone
+              </button>
+            </div>
 
-          {/* --- PROFILE VIEW --- */}
-          {view === "profile" && (
-            <form onSubmit={handleProfileSubmit} className="space-y-4">
-              <div className="flex items-center gap-3 bg-[#2a1f52] px-4 py-3 rounded-lg">
-                <User className="text-pink-400" size={20} />
-                <input
-                  type="text"
-                  name="name"
-                  value={profileData.name}
-                  onChange={handleProfileChange}
-                  className="bg-transparent outline-none flex-1"
-                />
+            {message && (
+              <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/50 text-green-300 text-sm p-3 rounded-lg mb-4">
+                <CheckCircle size={18} />
+                <span>{message}</span>
               </div>
-              <div className="flex items-center gap-3 bg-[#2a1f52]/50 px-4 py-3 rounded-lg">
-                <Mail className="text-gray-500" size={20} />
-                <input
-                  type="email"
-                  value={user?.email || ""}
-                  className="bg-transparent outline-none flex-1 text-gray-400 cursor-not-allowed"
-                  readOnly
-                />
+            )}
+            {error && (
+              <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/50 text-red-300 text-sm p-3 rounded-lg mb-4">
+                <AlertTriangle size={18} />
+                <span>{error}</span>
               </div>
-              <div className="flex items-center gap-3 bg-[#2a1f52] px-4 py-3 rounded-lg">
-                <Phone className="text-pink-400" size={20} />
-                <input
-                  type="text"
-                  name="phone"
-                  placeholder="Phone Number"
-                  value={profileData.phone}
-                  onChange={handleProfileChange}
-                  className="bg-transparent outline-none flex-1"
-                />
-              </div>
-              <div className="flex items-center gap-3 bg-[#2a1f52] px-4 py-3 rounded-lg">
-                <Github className="text-pink-400" size={20} />
-                <input
-                  type="text"
-                  name="githubId"
-                  placeholder="GitHub Username"
-                  value={profileData.githubId}
-                  onChange={handleProfileChange}
-                  className="bg-transparent outline-none flex-1"
-                />
-              </div>
-              <RoleDropdown
-                value={profileData.role}
-                onChange={handleRoleChange}
-              />
-              <div className="border-t border-pink-500/20 pt-4 space-y-4">
-                <button
-                  type="button"
-                  onClick={() => setView("password")}
-                  className="w-full flex items-center justify-center gap-3 border border-gray-500 py-3 rounded-lg font-semibold hover:bg-[#2a1f52] transition"
-                >
-                  <KeyRound size={18} /> Update Password
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-pink-500 to-indigo-500 py-3 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50"
-                >
-                  {loading ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </form>
-          )}
+            )}
 
-          {/* --- PASSWORD UPDATE VIEW --- */}
-          {view === "password" && (
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              {passwordUpdateMethod === "password" ? (
-                <div>
+            <div className="flex-grow">
+              {view === "profile" ? (
+                <form onSubmit={handleProfileSubmit} className="space-y-4">
                   <div className="flex items-center gap-3 bg-[#2a1f52] px-4 py-3 rounded-lg">
-                    <KeyRound className="text-pink-400" size={20} />
-                    <PasswordInput
-                      name="oldPassword"
-                      placeholder="Current Password"
-                      value={passwordData.oldPassword}
-                      onChange={handlePasswordChange}
+                    <User className="text-pink-400" size={20} />
+                    <input
+                      type="text"
+                      name="name"
+                      value={profileData.name}
+                      onChange={handleProfileChange}
+                      className="bg-transparent outline-none flex-1"
                     />
                   </div>
-                  <p className="text-center text-sm text-gray-400 mt-3">
-                    Forgot your password?{" "}
-                    <button
-                      type="button"
-                      onClick={handleRequestOtp}
-                      disabled={loading}
-                      className="text-cyan-400 hover:underline disabled:opacity-50"
-                    >
-                      {loading && passwordUpdateMethod === "password"
-                        ? "Sending..."
-                        : "Get OTP on Mail"}
-                    </button>
-                  </p>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 bg-[#2a1f52] px-4 py-3 rounded-lg">
-                  <ShieldCheck className="text-green-400" size={20} />
-                  <input
-                    type="text"
-                    name="otp"
-                    placeholder="Enter OTP from Email"
-                    value={passwordData.otp}
-                    onChange={handlePasswordChange}
-                    className="bg-transparent outline-none flex-1 text-center tracking-[4px]"
-                    maxLength={6}
+                  <div className="flex items-center gap-3 bg-[#2a1f52] px-4 py-3 rounded-lg">
+                    <Phone className="text-pink-400" size={20} />
+                    <input
+                      type="text"
+                      name="phone"
+                      placeholder="Phone Number"
+                      value={profileData.phone}
+                      onChange={handleProfileChange}
+                      className="bg-transparent outline-none flex-1"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3 bg-[#2a1f52] px-4 py-3 rounded-lg">
+                    <Github className="text-pink-400" size={20} />
+                    <input
+                      type="text"
+                      name="githubId"
+                      placeholder="GitHub Username"
+                      value={profileData.githubId}
+                      onChange={handleProfileChange}
+                      className="bg-transparent outline-none flex-1"
+                    />
+                  </div>
+                  <RoleDropdown
+                    value={profileData.role}
+                    onChange={handleRoleChange}
                   />
+                  <div className="pt-4">
+                    <button
+                      type="submit"
+                      disabled={!hasChanged || loading}
+                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-indigo-500 py-3 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+                    >
+                      <Save size={18} />
+                      {loading ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="border border-red-500/50 bg-red-500/10 rounded-lg p-6">
+                  <h3 className="text-xl font-bold text-red-300">
+                    Delete Account
+                  </h3>
+                  <p className="text-gray-400 mt-2 text-sm">
+                    This action is permanent and cannot be undone. All your
+                    data, teams, and projects will be permanently deleted.
+                  </p>
+                  <p className="text-gray-300 mt-4 mb-2 text-sm font-semibold">
+                    To confirm, please type your email address:{" "}
+                    <span className="text-red-300 font-bold">
+                      {user?.email}
+                    </span>
+                  </p>
+                  <input
+                    type="email"
+                    value={deleteConfirmEmail}
+                    onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                    className="w-full bg-[#2a1f52] px-4 py-3 rounded-lg border border-red-500/50 focus:ring-red-500 focus:border-red-500 outline-none"
+                  />
+                  <div className="pt-4">
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleteConfirmEmail !== user?.email || loading}
+                      className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 size={18} />
+                      {loading
+                        ? "Deleting..."
+                        : "Delete My Account Permanently"}
+                    </button>
+                  </div>
                 </div>
               )}
-
-              <div className="flex items-center gap-3 bg-[#2a1f52] px-4 py-3 rounded-lg">
-                <KeyRound className="text-pink-400" size={20} />
-                <PasswordInput
-                  name="newPassword"
-                  placeholder="New Password"
-                  value={passwordData.newPassword}
-                  onChange={handlePasswordChange}
-                />
-              </div>
-
-              <div className="border-t border-pink-500/20 pt-4 space-y-4">
-                <button
-                  type="button"
-                  onClick={() => setView("profile")}
-                  className="w-full flex items-center justify-center gap-3 border border-gray-500 py-3 rounded-lg font-semibold hover:bg-[#2a1f52] transition"
-                >
-                  Back to Profile
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-pink-500 to-indigo-500 py-3 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50"
-                >
-                  {loading ? "Updating..." : "Update Password"}
-                </button>
-              </div>
-            </form>
-          )}
+            </div>
+          </div>
         </div>
       </motion.div>
     </>

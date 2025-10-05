@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
-import { PlusCircle, Users, Activity, CheckCircle } from "lucide-react";
+import { PlusCircle, Users, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 import CreateTeamModal from "../components/CreateTeamModal";
 
@@ -13,8 +13,22 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        const { data } = await axios.get("/teams");
-        setTeams(data);
+        // Using dummy data as a placeholder until backend is fully integrated
+        const dummyTeamsData = [
+          {
+            _id: "1",
+            name: "Project Apollo",
+            leader: { name: "Aditya" },
+            members: [{}, {}, {}],
+          },
+          {
+            _id: "2",
+            name: "Quantum Nexus",
+            leader: { name: "Aditya" },
+            members: [{}],
+          },
+        ];
+        setTeams(dummyTeamsData);
       } catch (error) {
         console.error("Failed to fetch teams", error);
       }
@@ -26,7 +40,7 @@ const Dashboard = () => {
     setTeams((prevTeams) => [...prevTeams, newTeam]);
   };
 
-  // Dummy data for projects and tasks
+  // Dummy data for projects
   const dummyProjects = [
     { name: "Project Alpha", progress: 75 },
     { name: "Project Beta", progress: 40 },
@@ -45,8 +59,13 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0425] text-white pt-10">
-      <div className="container mx-auto px-6 py-8">
+    <div
+      className="min-h-screen text-white pt-10"
+    >
+      <div
+        className="container mx-auto px-6 py-8"
+        style={{ fontFamily: "FiraCode, sans-serif" }}
+      >
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

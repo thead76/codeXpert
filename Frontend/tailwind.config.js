@@ -4,10 +4,13 @@ export default {
   theme: {
     extend: {
       fontFamily: {
+        // This makes "Fira Code" the default font for the application.
+        sans: ["Fira Code", "sans-serif"],
+        // We keep 'orbitron' as a custom font for special headings.
         orbitron: ["Orbitron", "sans-serif"],
-        inter: ["Inter", "sans-serif"]
-      }
-    }
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 };
+

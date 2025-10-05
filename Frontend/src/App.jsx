@@ -8,12 +8,17 @@ import NavbarPrivate from "./components/NavbarPrivate";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
+import ScrollToTop from "./components/ScrollToTop";
 
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import CodeReview from "./pages/CodeReview";
 import CodeComments from "./pages/CodeComments";
 import BugFinder from "./pages/BugFinder";
+import MyTeam from "./pages/MyTeam";
+import AssignedTasks from "./pages/AssignedTasks";
+import Report from "./pages/Report";
+import Notice from "./pages/Notice";
 
 // This small helper component is responsible for "catching" the token from the URL
 const AuthTokenHandler = () => {
@@ -25,10 +30,8 @@ const AuthTokenHandler = () => {
     const tokenFromUrl = queryParams.get("token");
 
     if (tokenFromUrl) {
-      // If a token is found, save it and update the auth state
       localStorage.setItem("token", tokenFromUrl);
       setToken(tokenFromUrl);
-      // Clean the URL by removing the token, so it's no longer visible
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [location, setToken]);
@@ -56,12 +59,13 @@ function App() {
   }
 
   return (
-    <div className="bg-[#0f0425] min-h-screen flex flex-col font-inter">
-      {/* This component will handle the token logic on every page change */}
+    <div
+      className="bg-[#0f0425] min-h-screen flex flex-col font-sans"
+      style={{ fontFamily: "Orbitron, sans-serif" }}
+    >
       <AuthTokenHandler />
-
+      <ScrollToTop />
       {token ? <NavbarPrivate /> : <NavbarMain />}
-
       <main className="flex-1">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
@@ -109,11 +113,42 @@ function App() {
                   </PageWrapper>
                 }
               />
+              <Route
+                path="/my-team"
+                element={
+                  <PageWrapper>
+                    <MyTeam />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/assigned-tasks"
+                element={
+                  <PageWrapper>
+                    <AssignedTasks />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/report"
+                element={
+                  <PageWrapper>
+                    <Report />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/notice"
+                element={
+                  <PageWrapper>
+                    <Notice />
+                  </PageWrapper>
+                }
+              />
             </Route>
           </Routes>
         </AnimatePresence>
       </main>
-
       <Footer />
     </div>
   );

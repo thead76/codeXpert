@@ -1,18 +1,19 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const ProtectedRoute = ({ children }) => {
-  // We check for the token, as it's the definitive proof of being logged in.
+const ProtectedRoute = () => {
   const { token } = useAuth();
 
-  // If there's no token, redirect the user to the homepage.
-  if (!token) {
-    return <Navigate to="/" replace />;
+  // If there is a token (user is logged in), render the child route using <Outlet />.
+  // The <Outlet /> component from react-router-dom is the placeholder for
+  // whatever nested route is matched (e.g., /dashboard or /my-team).
+  if (token) {
+    return <Outlet />;
   }
 
-  // If a token exists, show the protected content.
-  return children;
+  // If there is no token, redirect the user to the homepage.
+  return <Navigate to="/" replace />;
 };
 
 export default ProtectedRoute;
