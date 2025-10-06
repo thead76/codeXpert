@@ -60,105 +60,104 @@ function App() {
   }
 
   return (
-    <div
-      className="bg-[#0f0425] min-h-screen flex flex-col font-sans"
-      style={{ fontFamily: "Orbitron, sans-serif" }}
-    >
+    <div className="bg-[#0f0425] min-h-screen flex flex-col font-sans">
       <AuthTokenHandler />
       <ScrollToTop />
       {token ? <NavbarPrivate /> : <NavbarMain />}
-      <main className="flex-1">
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            {/* Public Routes */}
-            <Route
-              path="/"
-              element={
-                <PageWrapper>
-                  <Home />
-                </PageWrapper>
-              }
-            />
-            <Route
-              path="/code-review"
-              element={
-                <PageWrapper>
-                  <CodeReview />
-                </PageWrapper>
-              }
-            />
-            <Route
-              path="/code-comments"
-              element={
-                <PageWrapper>
-                  <CodeComments />
-                </PageWrapper>
-              }
-            />
-            <Route
-              path="/bug-finder"
-              element={
-                <PageWrapper>
-                  <BugFinder />
-                </PageWrapper>
-              }
-            />
+      <div className="font-serif">
+        <main className="flex-1 ">
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              {/* Public Routes */}
+              <Route
+                path="/"
+                element={
+                  <PageWrapper>
+                    <Home />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/code-review"
+                element={
+                  <PageWrapper>
+                    <CodeReview />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/code-comments"
+                element={
+                  <PageWrapper>
+                    <CodeComments />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/bug-finder"
+                element={
+                  <PageWrapper>
+                    <BugFinder />
+                  </PageWrapper>
+                }
+              />
 
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route
-                path="/dashboard"
-                element={
-                  <PageWrapper>
-                    <Dashboard />
-                  </PageWrapper>
-                }
-              />
-              <Route
-                path="/my-team"
-                element={
-                  <PageWrapper>
-                    <MyTeam />
-                  </PageWrapper>
-                }
-              />
-              {/* --- NEW ROUTE --- */}
-              <Route
-                path="/team/:teamId"
-                element={
-                  <PageWrapper>
-                    <TeamDashboard />
-                  </PageWrapper>
-                }
-              />
-              <Route
-                path="/assigned-tasks"
-                element={
-                  <PageWrapper>
-                    <AssignedTasks />
-                  </PageWrapper>
-                }
-              />
-              <Route
-                path="/report"
-                element={
-                  <PageWrapper>
-                    <Report />
-                  </PageWrapper>
-                }
-              />
-              <Route
-                path="/notice"
-                element={
-                  <PageWrapper>
-                    <Notice />
-                  </PageWrapper>
-                }
-              />
-            </Route>
-          </Routes>
-        </AnimatePresence>
-      </main>
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route
+                  path="/dashboard"
+                  element={
+                    <PageWrapper>
+                      <Dashboard />
+                    </PageWrapper>
+                  }
+                />
+                <Route
+                  path="/my-team"
+                  element={
+                    <PageWrapper>
+                      <MyTeam />
+                    </PageWrapper>
+                  }
+                />
+                {/* --- NEW ROUTE --- */}
+                <Route
+                  path="/team/:teamId"
+                  element={
+                    <PageWrapper>
+                      <TeamDashboard />
+                    </PageWrapper>
+                  }
+                />
+                <Route
+                  path="/assigned-tasks"
+                  element={
+                    <PageWrapper>
+                      <AssignedTasks />
+                    </PageWrapper>
+                  }
+                />
+                <Route
+                  path="/report"
+                  element={
+                    <PageWrapper>
+                      <Report />
+                    </PageWrapper>
+                  }
+                />
+                <Route
+                  path="/notice"
+                  element={
+                    <PageWrapper>
+                      <Notice />
+                    </PageWrapper>
+                  }
+                />
+              </Route>
+            </Routes>
+          </AnimatePresence>
+        </main>
+      </div>
       <Footer />
     </div>
   );

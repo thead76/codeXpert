@@ -51,7 +51,7 @@ const Home = () => {
 
   // If there is no token (user is logged out), show the regular Home page
   return (
-    <div style={{ fontFamily: "Orbitron, sans-serif" }}>
+    <div >
       <motion.div
         className="bg-[#0f0425] min-h-screen px-6 md:px-12 py-16 flex flex-col items-center"
         initial={{ opacity: 0, y: 30 }}
@@ -63,7 +63,7 @@ const Home = () => {
         <div className="flex flex-wrap gap-12 justify-between max-w-6xl w-full">
           {/* Left Text */}
           <div className="flex-1 text-white min-w-[300px]">
-            <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4 font-orbitron">
+            <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
               AI Agent Platform for <br />
               <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent font-extrabold">
                 Software Development

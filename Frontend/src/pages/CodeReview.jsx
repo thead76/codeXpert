@@ -143,10 +143,7 @@ const CodeReview = () => {
   };
 
   return (
-    <div
-      className="min-h-screen text-white pt-10 font-sans"
-      style={{ fontFamily: "Orbitron, sans-serif" }}
-    >
+    <div className="min-h-screen text-white pt-10 font-serif">
       <motion.div
         className="container mx-auto px-4 md:px-8 py-8"
         initial={{ opacity: 0, y: 30 }}
