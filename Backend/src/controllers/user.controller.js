@@ -36,6 +36,16 @@ export const updateUserProfile = async (req, res) => {
   }
 };
 
+// @desc    Get all users
+export const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({}).select('-password');
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 // @desc    Send password reset OTP
 export const sendPasswordResetOtp = async (req, res) => {
     const user = req.user;
@@ -86,10 +96,8 @@ export const updateUserPassword = async (req, res) => {
     res.json({ message: 'Password updated successfully.' });
 };
 
-// --- FIX: MISSING DELETE FUNCTION ADDED ---
+
 // @desc    Delete user profile
-// @route   DELETE /api/v1/users/profile
-// @access  Private
 export const deleteUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
@@ -104,4 +112,3 @@ export const deleteUserProfile = async (req, res) => {
         res.status(500).json({ message: 'Server error while deleting account.' });
     }
 };
-

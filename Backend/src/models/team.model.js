@@ -7,6 +7,11 @@ const teamSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    description: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     leader: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
