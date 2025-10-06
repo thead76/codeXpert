@@ -89,6 +89,16 @@ export const AuthProvider = ({ children }) => {
     window.location.href = "http://localhost:8888/api/v1/auth/google";
   };
 
+  // --- NEW ---
+  const forgotPassword = async (email) => {
+    await axios.post("/auth/forgot-password", { email });
+  };
+
+  // --- NEW ---
+  const resetPassword = async (email, otp, password) => {
+    await axios.post("/auth/reset-password", { email, otp, password });
+  };
+
   const value = {
     user,
     setUser, // Expose setUser to allow components like the profile modal to update the context
@@ -100,8 +110,10 @@ export const AuthProvider = ({ children }) => {
     verifyOtpAndRegister,
     logout,
     handleGoogleLogin,
-    sendPasswordOtp, // <-- Expose the new function
-    updatePassword, // <-- Expose the new function
+    sendPasswordOtp,
+    updatePassword,
+    forgotPassword, // <-- Expose the new function
+    resetPassword, // <-- Expose the new function
   };
 
   // Render children only when the initial loading is complete
