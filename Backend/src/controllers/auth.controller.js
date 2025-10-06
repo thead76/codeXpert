@@ -117,3 +117,54 @@ export const googleAuthCallback = (req, res) => {
   const token = generateToken(req.user._id);
   res.redirect(`http://localhost:5173/?token=${token}`);
 };
+
+// --- NEW ---
+export const sendPasswordResetOtp = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await OTP.create({ email, otp });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Your Password Reset OTP for CodeXpert",
+      text: `Your One-Time Password for password reset is: ${otp}`,
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: "OTP sent successfully to your email." });
+  } catch (error) {
+    res.status(500).json({ message: "Error sending OTP." });
+  }
+};
+
+// --- NEW ---
+export const resetPasswordWithOtp = async (req, res) => {
+  const { email, otp, password } = req.body;
+  try {
+    const otpRecord = await OTP.findOne({ email, otp });
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid OTP." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    user.password = password;
+    await user.save();
+
+    await OTP.deleteOne({ email, otp });
+
+    res.status(200).json({ message: "Password has been reset successfully." });
+  } catch (error) {
+    res.status(500).json({ message: "Error resetting password." });
+  }
+};

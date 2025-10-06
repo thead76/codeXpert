@@ -1,10 +1,12 @@
 import express from 'express';
 import passport from 'passport';
 import {
-  sendOtpForSignup,       // <-- Import new
-  verifyOtpAndRegister,   // <-- Import new
+  sendOtpForSignup,       
+  verifyOtpAndRegister,   
   loginUser,
   googleAuthCallback,
+  sendPasswordResetOtp, // <-- Import new
+  resetPasswordWithOtp, // <-- Import new
 } from '../controllers/auth.controller.js';
 
 const router = express.Router();
@@ -15,6 +17,11 @@ router.post('/verify-otp', verifyOtpAndRegister);
 
 // Keep the existing routes
 router.post('/login', loginUser);
+
+// --- NEW ---
+router.post('/forgot-password', sendPasswordResetOtp);
+router.post('/reset-password', resetPasswordWithOtp);
+
 
 router.get(
   '/google',
