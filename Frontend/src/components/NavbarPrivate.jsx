@@ -8,17 +8,18 @@ import {
   Bug,
   Wrench,
   User,
-  Settings,
   Bell,
   CheckCircle,
-  PlusCircle,
+  XCircle,
   KeyRound,
-} from "lucide-react"; // KeyRound icon import karein
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import UserProfileModal from "./UserProfileModal";
 import ConfirmationModal from "./ConfirmationModal";
-import UpdatePasswordModal from "./UpdatePasswordModal"; // Naya password modal import karein
+import UpdatePasswordModal from "./UpdatePasswordModal";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 const NavbarPrivate = () => {
   const { user, logout } = useAuth();
@@ -26,15 +27,37 @@ const NavbarPrivate = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false); // Password modal ke liye naya state
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const closeMenu = () => setMenuOpen(false);
+
+  const fetchNotifications = async () => {
+    try {
+      const { data } = await axios.get("/notifications");
+      setNotifications(data);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications(); // Fetch on initial load
+    const interval = setInterval(fetchNotifications, 30000); // Fetch every 30 seconds
+    return () => clearInterval(interval); // Cleanup on component unmount
+  }, []);
+
+  useEffect(() => {
+    if (isNotificationOpen) {
+      fetchNotifications(); // Also fetch when panel is opened
+    }
+  }, [isNotificationOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -49,9 +72,7 @@ const NavbarPrivate = () => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogoutConfirm = () => {
@@ -60,30 +81,38 @@ const NavbarPrivate = () => {
     setIsLogoutModalOpen(false);
   };
 
+  const handleInvitationResponse = async (invitationId, status) => {
+    const promise = axios.put(`/teams/invitations/${invitationId}`, { status });
+
+    toast.promise(promise, {
+      loading: "Responding to invitation...",
+      success: () => {
+        fetchNotifications();
+        return `Invitation ${status}!`;
+      },
+      error: "Failed to respond.",
+    });
+  };
+
+  const handleTaskResponse = async (taskId, status) => {
+    const promise = axios.put(`/tasks/${taskId}/respond`, { status });
+
+    toast.promise(promise, {
+      loading: "Responding to task...",
+      success: () => {
+        fetchNotifications();
+        return `Task ${status}!`;
+      },
+      error: "Failed to respond to task.",
+    });
+  };
+
   const navLinkClass = ({ isActive }) =>
     `uppercase text-sm tracking-wide transition-colors ${
       isActive
         ? "text-cyan-400 border-b-2 border-cyan-400"
         : "text-white hover:text-gray-300"
     }`;
-
-  const notifications = [
-    {
-      icon: <PlusCircle size={16} className="text-green-400" />,
-      text: "Rohan accepted your team invitation.",
-      time: "5m ago",
-    },
-    {
-      icon: <CheckCircle size={16} className="text-cyan-400" />,
-      text: "New task 'Deploy to Staging' assigned.",
-      time: "1h ago",
-    },
-    {
-      icon: <User size={16} className="text-yellow-400" />,
-      text: "Your profile was updated.",
-      time: "1d ago",
-    },
-  ];
 
   return (
     <>
@@ -165,9 +194,10 @@ const NavbarPrivate = () => {
               className="relative text-white p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors"
             >
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-pink-500 rounded-full border-2 border-[#0f0425]"></span>
+              {notifications.length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-pink-500 rounded-full border-2 border-[#0f0425]"></span>
+              )}
             </button>
-
             <AnimatePresence>
               {isNotificationOpen && (
                 <motion.div
@@ -179,26 +209,80 @@ const NavbarPrivate = () => {
                 >
                   <div className="p-2">
                     <div className="px-3 py-2 flex justify-between items-center border-b border-white/10">
-                      <p className="font-semibold text-white">Notifications</p>
-                      <button className="text-xs text-cyan-400 hover:underline">
-                        Mark all as read
-                      </button>
+                      <p className="font-semibold text-white">
+                        Notifications ({notifications.length})
+                      </p>
                     </div>
                     <div className="mt-1 max-h-80 overflow-y-auto">
-                      {notifications.map((notif, index) => (
-                        <div
-                          key={index}
-                          className="flex items-start gap-3 px-3 py-3 text-sm text-gray-200 hover:bg-pink-500/20 rounded-md"
-                        >
-                          {notif.icon}
-                          <div className="flex-1">
-                            <p>{notif.text}</p>
+                      {notifications.length > 0 ? (
+                        notifications.map((notif) => (
+                          <div
+                            key={notif._id}
+                            className="flex flex-col gap-2 p-3 text-sm text-gray-200 hover:bg-pink-500/20 rounded-md"
+                          >
+                            <p>{notif.message}</p>
+                            {notif.teamInvitation && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <button
+                                  onClick={() =>
+                                    handleInvitationResponse(
+                                      notif.teamInvitation._id,
+                                      "accepted"
+                                    )
+                                  }
+                                  className="flex-1 bg-green-500/20 text-green-300 hover:bg-green-500/40 text-xs py-1.5 rounded flex items-center justify-center gap-1"
+                                >
+                                  <CheckCircle size={14} /> Accept
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleInvitationResponse(
+                                      notif.teamInvitation._id,
+                                      "declined"
+                                    )
+                                  }
+                                  className="flex-1 bg-red-500/20 text-red-300 hover:bg-red-500/40 text-xs py-1.5 rounded flex items-center justify-center gap-1"
+                                >
+                                  <XCircle size={14} /> Decline
+                                </button>
+                              </div>
+                            )}
+                            {notif.task && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <button
+                                  onClick={() =>
+                                    handleTaskResponse(
+                                      notif.task._id,
+                                      "accepted"
+                                    )
+                                  }
+                                  className="flex-1 bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/40 text-xs py-1.5 rounded flex items-center justify-center gap-1"
+                                >
+                                  <CheckCircle size={14} /> Accept Task
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleTaskResponse(
+                                      notif.task._id,
+                                      "declined"
+                                    )
+                                  }
+                                  className="flex-1 bg-red-500/20 text-red-300 hover:bg-red-500/40 text-xs py-1.5 rounded flex items-center justify-center gap-1"
+                                >
+                                  <XCircle size={14} /> Decline Task
+                                </button>
+                              </div>
+                            )}
                             <p className="text-xs text-gray-400 mt-1">
-                              {notif.time}
+                              {new Date(notif.createdAt).toLocaleString()}
                             </p>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p className="p-4 text-gray-400 text-center">
+                          No new notifications
+                        </p>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -214,7 +298,6 @@ const NavbarPrivate = () => {
               <User size={16} />
               {user?.name || "Profile"}
             </button>
-
             <AnimatePresence>
               {isDropdownOpen && (
                 <motion.div
@@ -241,7 +324,6 @@ const NavbarPrivate = () => {
                         <User size={16} />
                         <span>Edit Profile</span>
                       </button>
-                      {/* --- BADLAV YAHAN HAI --- */}
                       <button
                         onClick={() => {
                           setIsPasswordModalOpen(true);
@@ -279,7 +361,6 @@ const NavbarPrivate = () => {
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
       />
-      {/* --- NAYA MODAL YAHAN ADD KIYA GAYA HAI --- */}
       <UpdatePasswordModal
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}

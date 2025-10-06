@@ -19,6 +19,7 @@ import MyTeam from "./pages/MyTeam";
 import AssignedTasks from "./pages/AssignedTasks";
 import Report from "./pages/Report";
 import Notice from "./pages/Notice";
+import TeamDashboard from "./pages/TeamDashboard"; // <-- Import new page
 
 // This small helper component is responsible for "catching" the token from the URL
 const AuthTokenHandler = () => {
@@ -118,6 +119,15 @@ function App() {
                 element={
                   <PageWrapper>
                     <MyTeam />
+                  </PageWrapper>
+                }
+              />
+              {/* --- NEW ROUTE --- */}
+              <Route
+                path="/team/:teamId"
+                element={
+                  <PageWrapper>
+                    <TeamDashboard />
                   </PageWrapper>
                 }
               />
