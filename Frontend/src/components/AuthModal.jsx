@@ -13,12 +13,12 @@ const AuthModal = ({ type, isOpen, onClose }) => {
     sendOtp,
     verifyOtpAndRegister,
     handleGoogleLogin,
-    forgotPassword, // <-- Import new
-    resetPassword, // <-- Import new
+    forgotPassword,
+    resetPassword,
   } = useAuth();
 
   const [isLogin, setIsLogin] = useState(type === "login");
-  const [step, setStep] = useState("form"); // form, otp, forgotPassword, resetPassword
+  const [step, setStep] = useState("form");
 
   const [form, setForm] = useState({
     name: "",
@@ -57,7 +57,6 @@ const AuthModal = ({ type, isOpen, onClose }) => {
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setError("");
-
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -109,7 +108,6 @@ const AuthModal = ({ type, isOpen, onClose }) => {
     }
   };
 
-  // --- NEW ---
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setError("");
@@ -124,7 +122,6 @@ const AuthModal = ({ type, isOpen, onClose }) => {
     }
   };
 
-  // --- NEW ---
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError("");
@@ -258,140 +255,138 @@ const AuthModal = ({ type, isOpen, onClose }) => {
 
     return (
       <>
-        <form
-          onSubmit={isLogin ? handleLogin : handleSendOtp}
-          className="space-y-4"
-        >
-          {!isLogin && (
+        <div>
+          <form
+            onSubmit={isLogin ? handleLogin : handleSendOtp}
+            className="space-y-4"
+          >
+            {!isLogin && (
+              <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg">
+                <User className="text-pink-400" size={20} />
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Full Name"
+                  className="bg-transparent outline-none flex-1"
+                  value={form.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            )}
+            {!isLogin && (
+              <RoleDropdown
+                value={form.role}
+                onChange={(role) => setForm({ ...form, role })}
+              />
+            )}
             <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg">
-              <User className="text-pink-400" size={20} />
+              <Mail className="text-pink-400" size={20} />
               <input
-                type="text"
-                name="name"
-                placeholder="Full Name"
+                type="email"
+                name="email"
+                placeholder="Email"
                 className="bg-transparent outline-none flex-1"
-                value={form.name}
+                value={form.email}
                 onChange={handleInputChange}
                 required
               />
             </div>
-          )}
-
-          {!isLogin && (
-            <RoleDropdown
-              value={form.role}
-              onChange={(role) => setForm({ ...form, role })}
-            />
-          )}
-
-          <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg">
-            <Mail className="text-pink-400" size={20} />
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              className="bg-transparent outline-none flex-1"
-              value={form.email}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-
-          <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg relative">
-            <Lock className="text-pink-400" size={20} />
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Password"
-              className="bg-transparent outline-none flex-1"
-              value={form.password}
-              onChange={handleInputChange}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="text-gray-400 hover:text-white"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-
-          {!isLogin && (
             <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg relative">
               <Lock className="text-pink-400" size={20} />
               <input
-                type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
-                placeholder="Confirm Password"
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Password"
                 className="bg-transparent outline-none flex-1"
-                value={form.confirmPassword}
+                value={form.password}
                 onChange={handleInputChange}
                 required
               />
               <button
                 type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                onClick={() => setShowPassword(!showPassword)}
                 className="text-gray-400 hover:text-white"
               >
-                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-          )}
-
+            {!isLogin && (
+              <div className="flex items-center gap-2 bg-[#2a1f52] px-4 py-3 rounded-lg relative">
+                <Lock className="text-pink-400" size={20} />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  placeholder="Confirm Password"
+                  className="bg-transparent outline-none flex-1"
+                  value={form.confirmPassword}
+                  onChange={handleInputChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-pink-500 to-indigo-500 py-3 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Processing..." : isLogin ? "Login" : "Send OTP"}
+            </button>
+          </form>
+          <div className="flex items-center my-4">
+            <div className="flex-1 h-px bg-gray-600" />
+            <span className="px-2 text-gray-400">OR</span>
+            <div className="flex-1 h-px bg-gray-600" />
+          </div>
           <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-pink-500 to-indigo-500 py-3 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center gap-3 border border-gray-500 py-3 rounded-lg font-semibold hover:bg-white hover:text-black transition"
           >
-            {loading ? "Processing..." : isLogin ? "Login" : "Send OTP"}
+            <FcGoogle size={22} />{" "}
+            {isLogin ? "Log in with Google" : "Sign up with Google"}
           </button>
-        </form>
-
-        <div className="flex items-center my-4">
-          <div className="flex-1 h-px bg-gray-600" />
-          <span className="px-2 text-gray-400">OR</span>
-          <div className="flex-1 h-px bg-gray-600" />
+          <p className="text-gray-400 text-sm text-center mt-4">
+            {isLogin ? (
+              <>
+                Don’t have an account?{" "}
+                <span
+                  className="text-pink-400 cursor-pointer hover:underline"
+                  onClick={() => setIsLogin(!isLogin)}
+                >
+                  Sign Up
+                </span>
+                <br />
+                <span
+                  className="text-pink-400 cursor-pointer hover:underline"
+                  onClick={() => setStep("forgotPassword")}
+                >
+                  Forgot Password?
+                </span>
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <span
+                  className="text-pink-400 cursor-pointer hover:underline"
+                  onClick={() => setIsLogin(!isLogin)}
+                >
+                  Login
+                </span>
+              </>
+            )}
+          </p>
         </div>
-
-        <button
-          onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center gap-3 border border-gray-500 py-3 rounded-lg font-semibold hover:bg-white hover:text-black transition"
-        >
-          <FcGoogle size={22} />{" "}
-          {isLogin ? "Log in with Google" : "Sign up with Google"}
-        </button>
-
-        <p className="text-gray-400 text-sm text-center mt-4">
-          {isLogin ? (
-            <>
-              Don’t have an account?{" "}
-              <span
-                className="text-pink-400 cursor-pointer hover:underline"
-                onClick={() => setIsLogin(!isLogin)}
-              >
-                Sign Up
-              </span>
-              <br />
-              <span
-                className="text-pink-400 cursor-pointer hover:underline"
-                onClick={() => setStep("forgotPassword")}
-              >
-                Forgot Password?
-              </span>
-            </>
-          ) : (
-            <>
-              Already have an account?{" "}
-              <span
-                className="text-pink-400 cursor-pointer hover:underline"
-                onClick={() => setIsLogin(!isLogin)}
-              >
-                Login
-              </span>
-            </>
-          )}
-        </p>
       </>
     );
   };
@@ -412,9 +407,11 @@ const AuthModal = ({ type, isOpen, onClose }) => {
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         onClick={onClose}
       >
+        {/* --- FONT STYLE ADDED HERE --- */}
         <div
           className="bg-[#1a103d] p-8 rounded-2xl shadow-2xl w-full max-w-md text-white relative border border-pink-500"
           onClick={(e) => e.stopPropagation()}
+          style={{ fontFamily: "Georgia, serif" }}
         >
           <button
             className="absolute top-4 right-4 text-gray-400 hover:text-white"
@@ -422,7 +419,6 @@ const AuthModal = ({ type, isOpen, onClose }) => {
           >
             <X size={24} />
           </button>
-
           <h2 className="text-2xl font-bold mb-6 text-center">
             {step === "forgotPassword"
               ? "Forgot Password"
@@ -432,13 +428,11 @@ const AuthModal = ({ type, isOpen, onClose }) => {
               ? "Welcome Back"
               : "Create Account"}
           </h2>
-
           {error && (
             <div className="bg-red-900 border border-red-500 text-red-200 text-center p-3 rounded-lg mb-4">
               {error}
             </div>
           )}
-
           {!isLogin && step === "otp" ? (
             <form onSubmit={handleVerifyAndRegister} className="space-y-4">
               <p className="text-center text-gray-300">

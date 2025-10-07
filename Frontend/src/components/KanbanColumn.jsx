@@ -6,18 +6,22 @@ import {
 import { useDroppable } from "@dnd-kit/core";
 import TaskCard from "./TaskCard";
 
-const KanbanColumn = ({ id, title, tasks }) => {
+const KanbanColumn = ({ id, title, tasks, onReviewClick }) => {
   const { setNodeRef, isOver } = useDroppable({ id });
+
+  // Column ke border color ke liye aasan logic
+  const columnStyles = {
+    Completed: "border-green-500",
+    "In Progress": "border-yellow-500",
+    "Under Review": "border-purple-500",
+    "To Do": "border-blue-500",
+  };
 
   return (
     <div className="bg-[#1a103d]/80 backdrop-blur-sm border border-pink-500/30 rounded-2xl p-4 flex flex-col">
       <h3
         className={`font-semibold mb-4 text-lg text-center pb-2 border-b-2 ${
-          id === "completed"
-            ? "border-green-500"
-            : id === "inprogress"
-            ? "border-yellow-500"
-            : "border-gray-500"
+          columnStyles[id] || "border-gray-500"
         }`}
       >
         {title}
@@ -35,7 +39,11 @@ const KanbanColumn = ({ id, title, tasks }) => {
           }`}
         >
           {tasks.map((task) => (
-            <TaskCard key={task._id} task={task} />
+            <TaskCard
+              key={task._id}
+              task={task}
+              onReviewClick={onReviewClick} // onReviewClick ko pass karein
+            />
           ))}
         </div>
       </SortableContext>

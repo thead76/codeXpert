@@ -107,6 +107,20 @@ const NavbarPrivate = () => {
     });
   };
 
+  // --- YEH NAYA FUNCTION ADD KIYA GAYA HAI ---
+  const handleMarkAllAsRead = () => {
+    if (notifications.length === 0) return;
+    const promise = axios.put("/notifications/mark-all-read");
+    toast.promise(promise, {
+      loading: "Clearing notifications...",
+      success: () => {
+        setNotifications([]); // UI se turant clear karein
+        return "All notifications cleared!";
+      },
+      error: "Failed to clear notifications.",
+    });
+  };
+
   const navLinkClass = ({ isActive }) =>
     `uppercase text-sm tracking-wide transition-colors ${
       isActive
@@ -206,12 +220,21 @@ const NavbarPrivate = () => {
                   exit={{ opacity: 0, y: 10 }}
                   transition={{ duration: 0.2 }}
                   className="absolute top-full right-0 mt-3 w-80 bg-[#1a103d] border border-pink-500/50 rounded-lg shadow-2xl z-50"
+                  style={{ fontFamily: "Georgia, serif" }}
                 >
                   <div className="p-2">
                     <div className="px-3 py-2 flex justify-between items-center border-b border-white/10">
                       <p className="font-semibold text-white">
                         Notifications ({notifications.length})
                       </p>
+                      {/* --- YEH NAYA BUTTON HAI --- */}
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="text-xs text-cyan-400 hover:underline disabled:text-gray-500"
+                        disabled={notifications.length === 0}
+                      >
+                        Mark all as read
+                      </button>
                     </div>
                     <div className="mt-1 max-h-80 overflow-y-auto">
                       {notifications.length > 0 ? (
@@ -247,7 +270,7 @@ const NavbarPrivate = () => {
                                 </button>
                               </div>
                             )}
-                            {notif.task && (
+                            {notif.task && notif.task.status === "Pending" && (
                               <div className="flex items-center gap-2 mt-2">
                                 <button
                                   onClick={() =>

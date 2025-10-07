@@ -116,9 +116,11 @@ const UserProfileModal = ({ isOpen, onClose }) => {
         exit={{ scale: 0.9, opacity: 0 }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
+        {/* --- FONT STYLE YAHAN ADD KIYA GAYA HAI --- */}
         <div
           className="bg-[#1a103d] rounded-2xl shadow-2xl w-full max-w-3xl text-white border border-pink-500/50 flex flex-col md:flex-row overflow-hidden"
           onClick={(e) => e.stopPropagation()}
+          style={{ fontFamily: "Georgia, serif" }}
         >
           {/* Left Side - Profile Summary */}
           <div className="w-full md:w-1/3 bg-[#0f0425]/50 p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/10">

@@ -95,7 +95,7 @@ const MyTeam = () => {
             className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4"
           >
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold font-orbitron tracking-wide">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-wide">
                 My Teams
               </h1>
               <p className="text-gray-400 mt-2">

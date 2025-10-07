@@ -2,18 +2,34 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ClipboardList } from "lucide-react";
 import axios from "axios";
+import CustomDropdown from "./CustomDropdown"; // CustomDropdown component ko import karein
 
 const AssignTaskModal = ({ isOpen, onClose, team }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
+  const [priority, setPriority] = useState("Medium"); // Priority ke liye state add karein
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Dropdown ke liye options
+  const priorityOptions = [
+    { value: "High", label: "High Priority" },
+    { value: "Medium", label: "Medium Priority" },
+    { value: "Low", label: "Low Priority" },
+  ];
+
+  // Team members ko dropdown ke format mein convert karein
+  const memberOptions = team?.members.map((member) => ({
+    value: member._id,
+    label: member.name,
+  }));
 
   const handleClose = () => {
     setTitle("");
     setDescription("");
     setAssignedTo("");
+    setPriority("Medium"); // Priority state ko reset karein
     setError("");
     setLoading(false);
     onClose();
@@ -29,6 +45,7 @@ const AssignTaskModal = ({ isOpen, onClose, team }) => {
         title,
         description,
         assignedTo,
+        priority, // API call mein priority bhejein
         teamId: team._id,
       });
       handleClose();
@@ -103,30 +120,36 @@ const AssignTaskModal = ({ isOpen, onClose, team }) => {
                   required
                 />
               </div>
+
+              {/* Priority Dropdown */}
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-300">
+                  Priority
+                </label>
+                <CustomDropdown
+                  options={priorityOptions}
+                  value={priority}
+                  onChange={(value) => setPriority(value)}
+                />
+              </div>
+
+              {/* Assign To Dropdown */}
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-300">
                   Assign To
                 </label>
-                <select
+                <CustomDropdown
+                  options={memberOptions}
                   value={assignedTo}
-                  onChange={(e) => setAssignedTo(e.target.value)}
-                  className="w-full bg-white/5 p-3 rounded-lg outline-none focus:ring-2 focus:ring-cyan-500"
-                  required
-                >
-                  <option value="" disabled>
-                    Select a team member
-                  </option>
-                  {team?.members.map((member) => (
-                    <option key={member._id} value={member._id}>
-                      {member.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setAssignedTo(value)}
+                  placeholder="Select a team member"
+                />
               </div>
+
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 py-3 rounded-full font-semibold text-lg hover:scale-105 transition-transform"
+                disabled={loading || !assignedTo} // Disable karein agar member select nahi hai
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 py-3 rounded-full font-semibold text-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Assigning..." : "Assign Task"}
               </button>

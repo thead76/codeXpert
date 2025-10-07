@@ -157,6 +157,7 @@ const UpdatePasswordModal = ({ isOpen, onClose }) => {
         <div
           className="bg-[#1a103d] p-8 rounded-2xl shadow-2xl w-full max-w-md text-white relative border border-pink-500/50"
           onClick={(e) => e.stopPropagation()}
+          style={{ fontFamily: "Georgia, serif" }}
         >
           <button
             className="absolute top-4 right-4 text-gray-400 hover:text-white"

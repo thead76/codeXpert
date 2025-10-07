@@ -19,7 +19,8 @@ import MyTeam from "./pages/MyTeam";
 import AssignedTasks from "./pages/AssignedTasks";
 import Report from "./pages/Report";
 import Notice from "./pages/Notice";
-import TeamDashboard from "./pages/TeamDashboard"; // <-- Import new page
+import TeamDashboard from "./pages/TeamDashboard"; 
+import ChatBot from "./components/ChatBot";
 
 // This small helper component is responsible for "catching" the token from the URL
 const AuthTokenHandler = () => {
@@ -157,6 +158,7 @@ function App() {
             </Routes>
           </AnimatePresence>
         </main>
+        {token && <ChatBot />}
       </div>
       <Footer />
     </div>

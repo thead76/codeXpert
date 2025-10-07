@@ -109,7 +109,7 @@ const NavbarMain = () => {
           {/* Using the new functions with separate buttons */}
           <div className="flex items-center gap-4">
             <button
-              onClick={handleSignupClick}
+              onClick={handleLoginClick}
               className="bg-white text-[#0f0425] px-4 py-2 rounded font-semibold text-sm hover:bg-gray-300 transition"
             >
               Login/Sign Up
