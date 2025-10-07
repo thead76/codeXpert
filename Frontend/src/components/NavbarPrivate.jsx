@@ -31,9 +31,11 @@ const NavbarPrivate = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
 
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
+  const toolsMenuRef = useRef(null);
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const closeMenu = () => setMenuOpen(false);
@@ -48,14 +50,14 @@ const NavbarPrivate = () => {
   };
 
   useEffect(() => {
-    fetchNotifications(); // Fetch on initial load
-    const interval = setInterval(fetchNotifications, 30000); // Fetch every 30 seconds
-    return () => clearInterval(interval); // Cleanup on component unmount
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     if (isNotificationOpen) {
-      fetchNotifications(); // Also fetch when panel is opened
+      fetchNotifications();
     }
   }, [isNotificationOpen]);
 
@@ -69,6 +71,12 @@ const NavbarPrivate = () => {
         !notificationRef.current.contains(event.target)
       ) {
         setIsNotificationOpen(false);
+      }
+      if (
+        toolsMenuRef.current &&
+        !toolsMenuRef.current.contains(event.target)
+      ) {
+        setIsToolsMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -107,14 +115,13 @@ const NavbarPrivate = () => {
     });
   };
 
-  // --- YEH NAYA FUNCTION ADD KIYA GAYA HAI ---
   const handleMarkAllAsRead = () => {
     if (notifications.length === 0) return;
     const promise = axios.put("/notifications/mark-all-read");
     toast.promise(promise, {
       loading: "Clearing notifications...",
       success: () => {
-        setNotifications([]); // UI se turant clear karein
+        setNotifications([]);
         return "All notifications cleared!";
       },
       error: "Failed to clear notifications.",
@@ -169,37 +176,62 @@ const NavbarPrivate = () => {
             Notice
           </NavLink>
 
-          <div className="group relative pb-4 -mb-4">
+          <div
+            className="relative pb-4 -mb-4 w-full md:w-auto"
+            ref={toolsMenuRef}
+          >
             <button
-              className={`flex items-center gap-1 ${navLinkClass({
-                isActive: false,
-              })}`}
+              onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+              className={`flex items-center justify-center w-full gap-1 ${navLinkClass(
+                {
+                  isActive: false,
+                }
+              )}`}
             >
               <Wrench size={16} /> Tools
             </button>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 w-48 bg-[#1a103d] border border-pink-500/50 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
-              <NavLink
-                to="/code-review"
-                onClick={closeMenu}
-                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-white hover:bg-pink-500/20"
-              >
-                <Code size={16} /> Code Review
-              </NavLink>
-              <NavLink
-                to="/code-comments"
-                onClick={closeMenu}
-                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-white hover:bg-pink-500/20"
-              >
-                <MessageSquare size={16} /> Code Comments
-              </NavLink>
-              <NavLink
-                to="/bug-finder"
-                onClick={closeMenu}
-                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-white hover:bg-pink-500/20"
-              >
-                <Bug size={16} /> Bug Finder
-              </NavLink>
-            </div>
+            <AnimatePresence>
+              {isToolsMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full mt-2 pl-6 md:pl-0 md:mt-3 md:absolute md:top-full md:left-1/2 md:-translate-x-1/2 md:w-48 bg-[#1a103d] border border-pink-500/50 rounded-lg shadow-lg"
+                >
+                  <NavLink
+                    to="/code-review"
+                    onClick={() => {
+                      closeMenu();
+                      setIsToolsMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-sm text-white hover:bg-pink-500/20"
+                  >
+                    <Code size={16} /> Code Review
+                  </NavLink>
+                  <NavLink
+                    to="/code-comments"
+                    onClick={() => {
+                      closeMenu();
+                      setIsToolsMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-sm text-white hover:bg-pink-500/20"
+                  >
+                    <MessageSquare size={16} /> Code Comments
+                  </NavLink>
+                  <NavLink
+                    to="/bug-finder"
+                    onClick={() => {
+                      closeMenu();
+                      setIsToolsMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-sm text-white hover:bg-pink-500/20"
+                  >
+                    <Bug size={16} /> Bug Finder
+                  </NavLink>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="relative" ref={notificationRef}>
@@ -219,7 +251,7 @@ const NavbarPrivate = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute top-full right-0 mt-3 w-80 bg-[#1a103d] border border-pink-500/50 rounded-lg shadow-2xl z-50"
+                  className="w-[90%] max-w-sm mt-2 md:absolute md:top-full md:right-0 md:mt-3 md:w-80 bg-[#1a103d] border border-pink-500/50 rounded-lg shadow-2xl z-50"
                   style={{ fontFamily: "Georgia, serif" }}
                 >
                   <div className="p-2">
@@ -227,7 +259,6 @@ const NavbarPrivate = () => {
                       <p className="font-semibold text-white">
                         Notifications ({notifications.length})
                       </p>
-                      {/* --- YEH NAYA BUTTON HAI --- */}
                       <button
                         onClick={handleMarkAllAsRead}
                         className="text-xs text-cyan-400 hover:underline disabled:text-gray-500"
