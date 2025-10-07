@@ -7,7 +7,8 @@ import userRoutes from './routes/user.routes.js';
 import teamRoutes from './routes/team.routes.js';
 import taskRoutes from './routes/task.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
-import reportRoutes from './routes/report.routes.js'; // <-- YEH LINE MISSING THI
+import reportRoutes from './routes/report.routes.js'; 
+import noticeRoutes from './routes/notice.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 
 
@@ -31,6 +32,7 @@ app.use('/api/v1/teams', teamRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/reports', reportRoutes); 
+app.use('/api/v1/notices', noticeRoutes);
 app.use('/api/v1/ai', aiRoutes);
 
 export default app;
