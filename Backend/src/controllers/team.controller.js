@@ -254,7 +254,7 @@ export const getNotifications = async (req, res) => {
 };
 
 /**
- * @desc    Mark a notification as read
+ * @desc    Mark a single notification as read
  */
 export const markNotificationAsRead = async (req, res) => {
     try {
@@ -265,6 +265,23 @@ export const markNotificationAsRead = async (req, res) => {
         );
         if (!notification) return res.status(404).json({ message: 'Notification not found' });
         res.json(notification);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// --- YEH NAYA FUNCTION HAI ---
+/**
+ * @desc    Mark all notifications as read for the current user
+ */
+export const markAllNotificationsAsRead = async (req, res) => {
+    try {
+        await Notification.updateMany(
+            { user: req.user._id, read: false },
+            { $set: { read: true } }
+        );
+        res.json({ message: 'All notifications marked as read.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });

@@ -1,159 +1,162 @@
 import Task from '../models/task.model.js';
+import Notification from '../models/notification.model.js';
 import Team from '../models/team.model.js';
 import User from '../models/user.model.js';
-import Notification from '../models/notification.model.js'; // Import Notification model
 
-// @desc    Assign a new task to a team member and send a notification
-// @route   POST /api/v1/tasks
-// @access  Private (Team Leader)
+// assignTask function (No changes needed)
 export const assignTask = async (req, res) => {
-  const { title, description, assignedTo, teamId } = req.body;
+  const { title, description, assignedTo, teamId, priority } = req.body;
   const createdBy = req.user;
-
   try {
     const team = await Team.findById(teamId);
-
-    if (!team) {
-      return res.status(404).json({ message: 'Team not found' });
-    }
-
+    if (!team) return res.status(404).json({ message: 'Team not found' });
     if (team.leader.toString() !== createdBy._id.toString()) {
       return res.status(403).json({ message: 'Only the team leader can assign tasks' });
     }
-
     if (!team.members.includes(assignedTo)) {
-      return res.status(400).json({ message: 'The assigned user is not a member of this team' });
+      return res.status(400).json({ message: 'User is not a member of this team' });
     }
-
     const task = new Task({
-      title,
-      description,
-      assignedTo,
-      team: teamId,
-      createdBy: createdBy._id,
-      status: 'Pending', // <-- New tasks are initially 'Pending'
+      title, description, assignedTo, team: teamId, createdBy: createdBy._id, priority, status: 'Pending'
     });
-
-    const createdTask = await task.save();
-
-    // --- NEW: Create a notification for the assigned user ---
+    const savedTask = await task.save();
     const notification = new Notification({
-        user: assignedTo,
-        message: `${createdBy.name} has assigned you a new task: "${createdTask.title}"`,
-        // You'll need to add a 'task' field to your Notification model schema to link it
-        // For now, this will work to create the message
+      user: assignedTo,
+      message: `${createdBy.name} assigned you a new task: "${savedTask.title}"`,
+      task: savedTask._id,
     });
     await notification.save();
-
-
-    res.status(201).json(createdTask);
+    res.status(201).json(savedTask);
   } catch (error) {
-    console.error(error);
+    console.error('Error in assignTask:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
-// --- NEW FUNCTION ---
-// @desc    Allow a member to respond to a task assignment
-// @route   PUT /api/v1/tasks/:taskId/respond
-// @access  Private (Assigned User)
-export const respondToTask = async (req, res) => {
-    const { taskId } = req.params;
-    const { status } = req.body; // Expecting 'accepted' or 'declined'
-
+// getMyTasks function
+export const getMyTasks = async (req, res) => {
     try {
-        const task = await Task.findById(taskId);
-        if (!task) {
-            return res.status(404).json({ message: 'Task not found' });
-        }
-        if (task.assignedTo.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: 'This task is not assigned to you.' });
-        }
-
-        if (status === 'accepted') {
-            task.status = 'To Do'; // Move task to 'To Do' list
-            await task.save();
-            res.json({ message: 'Task accepted and added to your To Do list.' });
-        } else if (status === 'declined') {
-            // If declined, we can notify the leader and delete the task
-            const leaderId = task.createdBy;
-            const notificationForLeader = new Notification({
-                user: leaderId,
-                message: `${req.user.name} has declined the task: "${task.title}"`
-            });
-            await notificationForLeader.save();
-            await task.deleteOne(); // Or you could set a 'declined' status
-            res.json({ message: 'Task declined.' });
-        } else {
-            return res.status(400).json({ message: 'Invalid status provided.' });
-        }
-
-        // Clean up the initial assignment notification
-        // This assumes you have a way to link notifications to tasks
-        // For example, by finding a notification with the same user and a related message.
-
+        const tasks = await Task.find({ assignedTo: req.user._id, status: { $ne: 'Pending' } })
+            .populate('assignedTo', 'name avatar')
+            .populate('team', 'name') // <-- YEH LINE ZAROORI HAI
+            .sort({ createdAt: -1 });
+        res.json(tasks);
     } catch (error) {
-        console.error(error);
+        console.error('Error in getMyTasks:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
-
-// @desc    Get all tasks for a team
-// @route   GET /api/v1/tasks/team/:teamId
-// @access  Private (Team Members)
-export const getTasksForTeam = async (req, res) => {
-  const { teamId } = req.params;
-  const userId = req.user._id;
-
-  try {
-    const team = await Team.findById(teamId);
-
-    if (!team) {
-      return res.status(404).json({ message: 'Team not found' });
+// getTeamTasks function
+export const getTeamTasks = async (req, res) => {
+    try {
+        const leaderTeams = await Team.find({ leader: req.user._id });
+        const teamIds = leaderTeams.map(team => team._id);
+        const tasks = await Task.find({ team: { $in: teamIds }, status: { $ne: 'Pending' } })
+            .populate('assignedTo', 'name avatar')
+            .populate('team', 'name') // <-- YEH LINE ZAROORI HAI
+            .sort({ createdAt: -1 });
+        res.json(tasks);
+    } catch (error) {
+        console.error('Error in getTeamTasks:', error);
+        res.status(500).json({ message: 'Server Error' });
     }
-
-    if (team.leader.toString() !== userId.toString() && !team.members.includes(userId)) {
-      return res.status(403).json({ message: 'You are not authorized to view these tasks' });
-    }
-
-    const tasks = await Task.find({ team: teamId }).populate('assignedTo', 'name email');
-    res.json(tasks);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
-  }
 };
 
-// @desc    Update task status (e.g., from To Do to In Progress)
-// @route   PUT /api/v1/tasks/:taskId/status
-// @access  Private (Assigned User)
+// updateTaskStatus function
 export const updateTaskStatus = async (req, res) => {
   const { taskId } = req.params;
   const { status } = req.body;
-  const userId = req.user._id;
 
   try {
     const task = await Task.findById(taskId);
-
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
-
-    if (task.assignedTo.toString() !== userId.toString()) {
+    if (task.assignedTo.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'You can only update tasks assigned to you' });
     }
-
-    // A member should not be able to revert a task to 'Pending'
-    if (status === 'Pending') {
-        return res.status(400).json({ message: 'Cannot set task status back to Pending.'});
-    }
-
     task.status = status;
-    const updatedTask = await task.save();
-    res.json(updatedTask);
+    await task.save();
+    if (status === 'Under Review') {
+      const memberWhoUpdated = await User.findById(req.user._id);
+      if (!memberWhoUpdated) {
+        throw new Error('Could not find user details for notification.');
+      }
+      const notification = new Notification({
+        user: task.createdBy,
+        message: `${memberWhoUpdated.name} has submitted the task "${task.title}" for review.`,
+        task: task._id,
+      });
+      await notification.save();
+    }
+    res.json({ message: "Task status updated successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error('CRITICAL ERROR in updateTaskStatus:', error);
+    res.status(500).json({ message: 'Server Error while updating status' });
   }
+};
+
+// reviewTask function
+export const reviewTask = async (req, res) => {
+    const { taskId } = req.params;
+    const { status, reviewNotes } = req.body;
+    try {
+        const task = await Task.findById(taskId);
+        if (!task) return res.status(404).json({ message: 'Task not found' });
+        if (task.createdBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Only the task creator can review it.' });
+        }
+        task.status = status;
+        task.reviewNotes = reviewNotes || '';
+        await task.save();
+        let message = '';
+        if (status === 'Completed') {
+            message = `Your task "${task.title}" has been approved.`;
+        } else if (status === 'In Progress') {
+            message = `Your task "${task.title}" has been re-assigned with feedback.`;
+        }
+        if (message) {
+            const notification = new Notification({ user: task.assignedTo, message, task: task._id });
+            await notification.save();
+        }
+        res.json({ message: 'Review submitted.' });
+    } catch (error) {
+        console.error('Error in reviewTask:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// respondToTask function
+export const respondToTask = async (req, res) => {
+    const { taskId } = req.params;
+    const { status } = req.body;
+    try {
+        const task = await Task.findById(taskId);
+        if (!task) return res.status(404).json({ message: 'Task not found' });
+        if (task.assignedTo.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'This task is not assigned to you.' });
+        }
+        let responseMessage = '';
+        if (status === 'accepted') {
+            task.status = 'To Do';
+            await task.save();
+            responseMessage = 'Task accepted and moved to To Do.';
+        } else if (status === 'declined') {
+            const leaderNotification = new Notification({
+                user: task.createdBy,
+                message: `${req.user.name} has declined the task: "${task.title}".`
+            });
+            await leaderNotification.save();
+            await task.deleteOne();
+            responseMessage = 'Task declined and removed.';
+        } else {
+            return res.status(400).json({ message: 'Invalid response.' });
+        }
+        await Notification.findOneAndUpdate({ task: taskId, user: req.user._id }, { read: true });
+        res.json({ message: responseMessage });
+    } catch (error) {
+        console.error('Error in respondToTask:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
 };
