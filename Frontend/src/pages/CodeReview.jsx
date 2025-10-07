@@ -13,7 +13,8 @@ import {
 import axios from "axios";
 
 // --- Configuration ---
-const API_BASE_URL = "http://localhost:8888/api/v1/analyze";
+// --- Configuration ---
+const API_BASE_URL = "http://localhost:8888/api/v1/ai"; 
 const POLLING_INTERVAL = 3000;
 
 const CodeReview = () => {

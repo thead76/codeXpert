@@ -85,7 +85,7 @@ const Notice = () => {
             className="flex flex-col md:flex-row justify-between items-center mb-12 gap-4"
           >
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold font-orbitron tracking-wide">
+              <h1 className="text-2xl md:text-3xl font-bold font-orbitron tracking-wide">
                 Notice Board
               </h1>
               <p className="text-gray-400 mt-2">

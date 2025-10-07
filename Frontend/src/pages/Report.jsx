@@ -93,7 +93,7 @@ const Report = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-3xl font-bold font-orbitron">Work Report</h1>
+        <h1 className="text-2xl font-bold font-orbitron">Work Report</h1>
         <p className="text-gray-400 mt-2">
           Analyze your performance and contributions.
         </p>
@@ -180,7 +180,7 @@ const Report = () => {
                     </div>
                   </div>
                   <div className="lg:col-span-3 bg-[#1a103d]/50 p-6 rounded-2xl border border-cyan-500/30">
-                    <h3 className="font-bold font-orbitron text-xl mb-4">
+                    <h3 className="font-bold font-orbitron text-2xl mb-4">
                       <History /> My Completed Tasks History
                     </h3>
                     <TaskHistoryTable tasks={stats.completedTasksHistory} />
