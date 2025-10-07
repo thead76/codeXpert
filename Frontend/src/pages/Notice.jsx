@@ -1,168 +1,154 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { useAuth } from "../context/AuthContext";
-import { PlusCircle, Loader, Megaphone, Bell, Users, Code } from "lucide-react";
+import { Loader, Megaphone, PlusCircle } from "lucide-react";
+import { motion } from "framer-motion";
 import NoticeCard from "../components/NoticeCard";
 import PostNoticeModal from "../components/PostNoticeModal";
-
-// --- DUMMY DATA ---
-const dummyNotices = [
-  {
-    _id: "notice1",
-    title: "Project Phoenix Kick-off Meeting",
-    author: "Aditya Kumar",
-    date: "2025-10-05T10:00:00Z",
-    priority: "High",
-    category: "Project Phoenix",
-    content:
-      "All members of Project Phoenix are required to attend the kick-off meeting this Friday at 11:00 AM. We will discuss the project timeline, key deliverables, and individual responsibilities. Please come prepared with your initial thoughts.",
-  },
-  {
-    _id: "notice2",
-    title: "New CI/CD Pipeline Deployed",
-    author: "Riya Singh",
-    date: "2025-10-04T15:30:00Z",
-    priority: "Medium",
-    category: "Updates",
-    content:
-      "The new CI/CD pipeline for the main repository has been successfully deployed. Please ensure all new commits are pushed to feature branches to trigger the automated build and test process. Report any issues to the DevOps channel.",
-  },
-  {
-    _id: "notice3",
-    title: "General Code of Conduct Reminder",
-    author: "Admin",
-    date: "2025-10-01T09:00:00Z",
-    priority: "Low",
-    category: "General",
-    content:
-      "This is a general reminder to maintain a professional and respectful environment in all team communications. Please review the company's code of conduct document available on the intranet.",
-  },
-];
-// --- END DUMMY DATA ---
+import ConfirmationModal from "../components/ConfirmationModal"; // <-- ConfirmationModal ko import karein
+import toast from "react-hot-toast";
 
 const Notice = () => {
   const { user } = useAuth();
   const [notices, setNotices] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showPostModal, setShowPostModal] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("All");
+  const [loading, setLoading] = useState(true);
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+
+  // --- NAYA BADLAAV: Delete confirmation ke liye state ---
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [noticeToDelete, setNoticeToDelete] = useState(null);
 
   useEffect(() => {
-    setTimeout(() => {
-      setNotices(dummyNotices);
-      setIsLoading(false);
-    }, 500);
+    const fetchNotices = async () => {
+      try {
+        const { data } = await axios.get("/notices");
+        setNotices(data);
+      } catch (error) {
+        console.error("Failed to fetch notices:", error);
+        toast.error("Could not fetch notices.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotices();
   }, []);
 
-  const filteredNotices = notices.filter(
-    (notice) => activeFilter === "All" || notice.category === activeFilter
-  );
+  const handleNoticePosted = (newNotice) => {
+    // Naya notice aane par, use list mein sabse upar add karein
+    setNotices((prevNotices) => [newNotice, ...prevNotices]);
+  };
 
-  const FilterItem = ({ icon, label, count }) => (
-    <button
-      onClick={() => setActiveFilter(label)}
-      className={`w-full flex justify-between items-center px-4 py-3 rounded-lg text-left transition ${
-        activeFilter === label
-          ? "bg-pink-500/20 text-white"
-          : "hover:bg-white/5"
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        {icon}
-        <span className="font-semibold">{label}</span>
-      </div>
-      <span className="bg-[#2a1f52] text-xs font-bold px-2 py-1 rounded-full">
-        {count}
-      </span>
-    </button>
-  );
+  // --- NAYA FUNCTION: Delete modal kholne ke liye ---
+  const handleDeleteClick = (notice) => {
+    setNoticeToDelete(notice);
+    setIsConfirmModalOpen(true);
+  };
 
-  if (isLoading) {
+  // --- NAYA FUNCTION: Deletion ko confirm karne par API call karega ---
+  const handleConfirmDelete = () => {
+    if (!noticeToDelete) return;
+
+    const promise = axios.delete(`/notices/${noticeToDelete._id}`);
+    toast.promise(promise, {
+      loading: "Deleting notice...",
+      success: () => {
+        setNotices((prevNotices) =>
+          prevNotices.filter((n) => n._id !== noticeToDelete._id)
+        );
+        setIsConfirmModalOpen(false);
+        setNoticeToDelete(null);
+        return "Notice deleted successfully!";
+      },
+      error: (err) => {
+        setIsConfirmModalOpen(false);
+        setNoticeToDelete(null);
+        return err.response?.data?.message || "Failed to delete notice.";
+      },
+    });
+  };
+
+  if (loading) {
     return (
-      <div className="flex justify-center items-center h-96 text-white">
-        <Loader className="animate-spin mr-3" size={32} />
-        Loading notices...
+      <div className="flex justify-center items-center h-[calc(100vh-80px)]">
+        <Loader className="animate-spin text-cyan-400" size={48} />
       </div>
     );
   }
 
   return (
-    <div
-      className="container mx-auto px-4 md:px-8 py-8 text-white"
-      style={{ fontFamily: "Orbitron, sans-serif" }}
-    >
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-4xl font-bold font-orbitron">Notice Board</h1>
-          <p className="text-gray-400 mt-1">
-            Stay updated with the latest announcements and team news.
-          </p>
-        </div>
-        {user?.role === "leader" && (
-          <button
-            onClick={() => setShowPostModal(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-indigo-500 py-3 px-6 rounded-lg font-semibold hover:scale-105 transition-transform shadow-lg shadow-pink-500/20"
+    <>
+      <div className="p-4 md:p-8 text-white min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col md:flex-row justify-between items-center mb-12 gap-4"
           >
-            <PlusCircle size={20} />
-            Post a New Notice
-          </button>
-        )}
-      </div>
-
-      {/* Main Content Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Left Sidebar - Filters */}
-        <aside className="lg:col-span-1 bg-[#1a103d]/50 border border-pink-500/30 rounded-2xl p-4 self-start">
-          <h2 className="font-bold text-lg mb-4 px-2">Categories</h2>
-          <div className="space-y-2">
-            <FilterItem
-              icon={<Megaphone size={20} className="text-cyan-400" />}
-              label="All"
-              count={notices.length}
-            />
-            <FilterItem
-              icon={<Bell size={20} className="text-yellow-400" />}
-              label="General"
-              count={notices.filter((n) => n.category === "General").length}
-            />
-            <FilterItem
-              icon={<Users size={20} className="text-green-400" />}
-              label="Updates"
-              count={notices.filter((n) => n.category === "Updates").length}
-            />
-            <FilterItem
-              icon={<Code size={20} className="text-pink-400" />}
-              label="Project Phoenix"
-              count={
-                notices.filter((n) => n.category === "Project Phoenix").length
-              }
-            />
-          </div>
-        </aside>
-
-        {/* Right Content - Notice Feed */}
-        <main className="lg:col-span-3">
-          <div className="space-y-6">
-            {filteredNotices.length > 0 ? (
-              filteredNotices.map((notice) => (
-                <NoticeCard key={notice._id} notice={notice} />
-              ))
-            ) : (
-              <div className="text-center py-24 text-gray-500">
-                <Megaphone size={48} className="mx-auto mb-4" />
-                <p>No notices found in this category.</p>
-              </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold font-orbitron tracking-wide">
+                Notice Board
+              </h1>
+              <p className="text-gray-400 mt-2">
+                Latest announcements and updates for your teams.
+              </p>
+            </div>
+            {user.role === "leader" && (
+              <button
+                onClick={() => setIsPostModalOpen(true)}
+                className="bg-gradient-to-r from-pink-500 to-indigo-500 text-white px-5 py-3 rounded-full font-semibold flex items-center gap-2 hover:scale-105 transition-transform"
+              >
+                <PlusCircle size={20} /> Post New Notice
+              </button>
             )}
-          </div>
-        </main>
+          </motion.div>
+
+          {notices.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center bg-white/5 p-16 rounded-2xl border border-white/10"
+            >
+              <Megaphone size={48} className="mx-auto text-cyan-400 mb-4" />
+              <h2 className="text-2xl font-semibold">
+                The Notice Board is Empty
+              </h2>
+              <p className="text-gray-400 mt-2">
+                {user.role === "leader"
+                  ? "Post a notice to share updates with your teams."
+                  : "No notices have been posted in your teams yet."}
+              </p>
+            </motion.div>
+          ) : (
+            <div className="space-y-8">
+              {notices.map((notice) => (
+                <NoticeCard
+                  key={notice._id}
+                  notice={notice}
+                  onDeleteClick={handleDeleteClick}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      <PostNoticeModal
-        isOpen={showPostModal}
-        onClose={() => setShowPostModal(false)}
-        onNoticePosted={(newNotice) => setNotices([newNotice, ...notices])}
+      {user.role === "leader" && (
+        <PostNoticeModal
+          isOpen={isPostModalOpen}
+          onClose={() => setIsPostModalOpen(false)}
+          onNoticePosted={handleNoticePosted}
+        />
+      )}
+
+      {/* --- NAYA BADLAAV: Confirmation Modal ko yahaan render karein --- */}
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Confirm Deletion"
+        message={`Are you sure you want to permanently delete the notice: "${noticeToDelete?.title}"?`}
       />
-    </div>
+    </>
   );
 };
 

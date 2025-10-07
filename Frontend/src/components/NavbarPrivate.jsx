@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import UserProfileModal from "./UserProfileModal";
-import ConfirmationModal from "./ConfirmationModal";
+import LogoutModal from "./LogoutModal";
 import UpdatePasswordModal from "./UpdatePasswordModal";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -388,7 +388,7 @@ const NavbarPrivate = () => {
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
       />
-      <ConfirmationModal
+      <LogoutModal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={handleLogoutConfirm}

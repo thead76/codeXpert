@@ -1,8 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { LogOut, DeleteIcon, TrashIcon } from "lucide-react";
+import { LogOut } from "lucide-react";
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+const LogoutModal = ({ isOpen, onClose, onConfirm, title, message }) => {
   if (!isOpen) return null;
 
   return (
@@ -39,8 +39,8 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
               onClick={onConfirm}
               className="px-8 py-2 rounded-lg font-semibold bg-red-600 hover:bg-red-700 transition flex items-center gap-2"
             >
-              <TrashIcon size={18} />
-              Delete
+              <LogOut size={18} />
+              Logout
             </button>
           </div>
         </div>
@@ -49,4 +49,4 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
   );
 };
 
-export default ConfirmationModal;
+export default LogoutModal;

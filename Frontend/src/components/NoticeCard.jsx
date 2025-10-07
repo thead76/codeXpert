@@ -1,50 +1,86 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { User, Clock } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { Trash2, Clock, Users } from "lucide-react";
 
-const NoticeCard = ({ notice }) => {
-  const priorityClasses = {
-    High: "bg-red-500/20 text-red-300 border-red-500/50",
-    Medium: "bg-yellow-500/20 text-yellow-300 border-yellow-500/50",
-    Low: "bg-gray-500/20 text-gray-300 border-gray-500/50",
-  };
+const NoticeCard = ({ notice, onDeleteClick }) => {
+  // <-- Prop mein 'onDeleteClick' lein
+  const { user } = useAuth();
+  const isAuthor = user._id === notice.postedBy._id;
 
-  const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "long", day: "numeric" };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+  const categoryStyles = {
+    General: "bg-blue-500",
+    Important: "bg-red-500",
+    Update: "bg-green-500",
+    Meeting: "bg-yellow-500",
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, x: -50 }}
+      animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-[#1a103d]/80 backdrop-blur-sm border border-pink-500/30 rounded-2xl shadow-lg shadow-indigo-500/10 overflow-hidden"
+      className="relative pl-8 py-4 border-l-2 border-pink-500/30"
     >
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-3">
-          <h2 className="text-2xl font-bold font-orbitron">{notice.title}</h2>
+      {/* Timeline Dot */}
+      <div
+        className={`absolute -left-2 top-5 w-4 h-4 rounded-full ${
+          categoryStyles[notice.category]
+        }`}
+      ></div>
+
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-3">
           <span
-            className={`px-3 py-1 text-xs font-semibold rounded-full border ${
-              priorityClasses[notice.priority]
-            }`}
+            className={`text-sm font-semibold px-3 py-1 rounded-full bg-white/10`}
           >
-            {notice.priority}
+            {notice.team.name}
+          </span>
+          <span
+            className={`text-xs font-semibold px-3 py-1 rounded-full ${
+              categoryStyles[notice.category]
+            } text-white`}
+          >
+            {notice.category}
           </span>
         </div>
+        {/* --- YAHAN BADLAAV KIYA GAYA HAI --- */}
+        {isAuthor && (
+          <button
+            onClick={() => onDeleteClick(notice)}
+            className="text-gray-400 hover:text-red-400"
+          >
+            <Trash2 size={18} />
+          </button>
+        )}
+      </div>
 
-        <div className="flex items-center gap-6 text-sm text-gray-400 mb-4 pb-4 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <User size={14} />
-            <span>{notice.author}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock size={14} />
-            <span>{formatDate(notice.date)}</span>
-          </div>
+      <h3 className="text-xl font-bold font-orbitron text-white mt-3 mb-2">
+        {notice.title}
+      </h3>
+      <p className="text-gray-300 text-sm mb-4">{notice.content}</p>
+
+      <div className="flex justify-between items-center text-xs text-gray-400">
+        <div className="flex items-center gap-2">
+          <img
+            src={
+              notice.postedBy.avatar ||
+              `https://ui-avatars.com/api/?name=${notice.postedBy.name}`
+            }
+            alt={notice.postedBy.name}
+            className="w-6 h-6 rounded-full"
+          />
+          <span>{notice.postedBy.name}</span>
         </div>
-
-        <p className="text-gray-300 leading-relaxed">{notice.content}</p>
+        <div className="flex items-center gap-1.5">
+          <Clock size={14} />
+          <span>
+            {new Date(notice.createdAt).toLocaleString("en-US", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </span>
+        </div>
       </div>
     </motion.div>
   );
