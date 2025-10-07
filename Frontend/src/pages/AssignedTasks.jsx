@@ -112,10 +112,6 @@ const AssignedTasks = () => {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
       filtered = filtered.filter((task) => {
-        if (task.status !== "Completed") {
-          return true;
-        }
-
         const taskDate = new Date(task.updatedAt);
         const taskDay = new Date(
           taskDate.getFullYear(),
@@ -153,19 +149,31 @@ const AssignedTasks = () => {
     user.role,
   ]);
 
+  // --- YEH FUNCTION FINAL FIX HAI ---
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (!over) return;
-    if (user.role === "leader") {
-      toast.error("Leaders can only view tasks. Use the 'Review' button.");
-      return;
-    }
+
     const activeId = active.id;
     const activeTask = tasks.find((t) => t._id === activeId);
-    const overContainerId = over.id;
-    if (!columnOrder.includes(overContainerId)) return;
+
+    // Rule: Agar user leader hai, toh woh sirf apne tasks ko hi drag kar sakta hai.
+    if (user.role === "leader" && activeTask.assignedTo._id !== user._id) {
+      toast.error("You can only drag your own tasks. Use 'Review' for others.");
+      return;
+    }
+
+    const overContainerId = over.data.current?.sortable?.containerId || over.id;
+
+    if (!columnOrder.includes(overContainerId)) {
+      console.error("Could not find the destination column.");
+      return;
+    }
+
     const newStatus = overContainerId;
+
     if (activeTask.status === newStatus) return;
+
     if (newStatus === "Under Review" && activeTask.status !== "In Progress") {
       toast.error(
         "Task must be in 'In Progress' before moving to 'Under Review'."
@@ -176,10 +184,14 @@ const AssignedTasks = () => {
       toast.error("Please move tasks to 'Under Review' for approval.");
       return;
     }
-    if (activeTask.status === "Under Review") {
+    if (
+      activeTask.status === "Under Review" &&
+      activeTask.createdBy !== user._id
+    ) {
       toast.error("You cannot move a task out of 'Under Review'.");
       return;
     }
+
     setTasks((prev) =>
       prev.map((t) => (t._id === activeId ? { ...t, status: newStatus } : t))
     );
@@ -253,7 +265,6 @@ const AssignedTasks = () => {
               </div>
             )}
           </div>
-
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <Calendar size={18} className="text-cyan-400" />

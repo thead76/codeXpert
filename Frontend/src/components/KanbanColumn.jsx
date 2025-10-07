@@ -5,11 +5,12 @@ import {
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import TaskCard from "./TaskCard";
+import { useAuth } from "../context/AuthContext"; // useAuth ko import karein
 
 const KanbanColumn = ({ id, title, tasks, onReviewClick }) => {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const { user } = useAuth(); // Logged-in user ki detail lein
 
-  // Column ke border color ke liye aasan logic
   const columnStyles = {
     Completed: "border-green-500",
     "In Progress": "border-yellow-500",
@@ -38,13 +39,20 @@ const KanbanColumn = ({ id, title, tasks, onReviewClick }) => {
             isOver ? "bg-[#2a1f52]/50" : ""
           }`}
         >
-          {tasks.map((task) => (
-            <TaskCard
-              key={task._id}
-              task={task}
-              onReviewClick={onReviewClick} // onReviewClick ko pass karein
-            />
-          ))}
+          {tasks.map((task) => {
+            // --- YAHAN BADLAAV KIYA GAYA HAI ---
+            // Task draggable hai ya nahi, yeh logic yahaan hai
+            const isDraggable =
+              user.role !== "leader" || task.assignedTo._id === user._id;
+            return (
+              <TaskCard
+                key={task._id}
+                task={task}
+                isDraggable={isDraggable} // Prop ko pass karein
+                onReviewClick={onReviewClick}
+              />
+            );
+          })}
         </div>
       </SortableContext>
     </div>

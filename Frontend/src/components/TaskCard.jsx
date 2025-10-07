@@ -7,13 +7,13 @@ import {
   ChevronUp,
   Equal,
   GripVertical,
-  Folder, // <-- Folder icon ko import karein
+  Folder,
 } from "lucide-react";
 
-const TaskCard = ({ task, onReviewClick }) => {
+const TaskCard = ({ task, onReviewClick, isDraggable }) => {
+  // <-- isDraggable prop receive karein
   const { user } = useAuth();
   const isLeader = user?.role === "leader";
-  const isDraggable = !isLeader;
 
   const {
     attributes,
@@ -22,7 +22,7 @@ const TaskCard = ({ task, onReviewClick }) => {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task._id, disabled: !isDraggable });
+  } = useSortable({ id: task._id, disabled: !isDraggable }); // Dragging ko yahaan control karein
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -56,14 +56,16 @@ const TaskCard = ({ task, onReviewClick }) => {
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`bg-[#1a103d]/70 p-4 rounded-lg border ${
-        statusBorderColor[task.status]
-      } mb-3 touch-none shadow-lg`}
+      className={`bg-slate-900/70 p-4 rounded-xl border-l-4 ${
+        statusBorderColor[task.status] || "border-gray-500"
+      } mb-4 shadow-lg`}
     >
       <div className="flex justify-between items-start">
-        <h4 className="font-bold text-white mb-1 flex-1 pr-2">{task.title}</h4>
+        <h4 className="font-bold text-white mb-2 flex-1 pr-2">{task.title}</h4>
         <div className="flex items-center gap-2">
           {priorityIcons[task.priority]}
+          {/* --- YAHAN BADLAAV KIYA GAYA HAI --- */}
+          {/* Drag handle sirf tab dikhega jab task draggable ho */}
           {isDraggable && (
             <button
               {...listeners}
@@ -75,14 +77,12 @@ const TaskCard = ({ task, onReviewClick }) => {
         </div>
       </div>
 
-      {/* --- YEH SECTION ADD KIYA GAYA HAI --- */}
       {task.team && (
         <div className="flex items-center gap-1.5 text-xs text-cyan-400 mb-2">
           <Folder size={14} />
           <span>{task.team.name}</span>
         </div>
       )}
-      {/* --- END OF NEW SECTION --- */}
 
       <p className="text-sm text-gray-400 mb-4 line-clamp-2">
         {task.description}
