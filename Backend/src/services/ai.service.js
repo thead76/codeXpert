@@ -4,8 +4,7 @@ import crypto from 'crypto';
 // --- DIRECT FIX ---
 // We are temporarily hard-coding the API key here to bypass any .env file issues.
 // This is for debugging only and not recommended for production.
-const API_KEY = "AIzaSyBz-NewM6qAQtg-CCAiDvWZM-TqhFigR9Y";
-
+const API_KEY = process.env.GEMINI_API_KEY;
 // Initialize the Gemini client directly with the key.
 const genAI = new GoogleGenerativeAI(API_KEY);
 

@@ -63,7 +63,7 @@ export const verifyOtpAndRegister = async (req, res) => {
       // Let's also check if a record for the email exists at all
       const anyOtpForEmail = await OTP.findOne({ email });
       if (anyOtpForEmail) {
-          console.log(`[DEBUG] Found a different OTP for this email: ${anyOtpForEmail.otp}`);
+          // console.log(`[DEBUG] Found a different OTP for this email: ${anyOtpForEmail.otp}`);
       } else {
           console.log(`[DEBUG] No OTP record found for this email address at all.`);
       }
