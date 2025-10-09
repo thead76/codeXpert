@@ -35,4 +35,5 @@ app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/notices', noticeRoutes);
 app.use('/api/v1/ai', aiRoutes);
 
+
 export default app;

@@ -14,9 +14,9 @@ export async function initiateAnalysis(req, res) {
   const jobId = aiService.startAnalysis(code);
 
   // Immediately respond with 202 Accepted and the job ID
-  res.status(202).json({ 
+  res.status(202).json({
     message: 'Analysis started. Use the jobId to check the status.',
-    jobId: jobId 
+    jobId: jobId
   });
 }
 
@@ -68,3 +68,21 @@ export async function findBugs(req, res) {
   }
 }
 
+/**
+ * Controller for the chatbot.
+ */
+export async function chat(req, res) {
+    const { message } = req.body;
+
+    if (!message || typeof message !== 'string') {
+        return res.status(400).json({ message: 'Message must be a non-empty string.' });
+    }
+
+    try {
+        const reply = await aiService.getChatbotReply(message);
+        res.status(200).json({ reply });
+    } catch (error) {
+        console.error('Error in chatbot controller:', error);
+        res.status(500).json({ message: 'Failed to get a response from the chatbot.' });
+    }
+}
