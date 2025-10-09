@@ -12,7 +12,10 @@ import {
 import axios from "axios";
 
 // --- Configuration ---
-const API_BASE_URL = "http://localhost:8888/api/v1/ai/bugs";
+// const API_BASE_URL = "http://localhost:8888/api/v1/ai/bugs";
+// --- Configuration ---
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/ai/bugs`;
+
 
 const BugFinder = () => {
   const [code, setCode] = useState("");
