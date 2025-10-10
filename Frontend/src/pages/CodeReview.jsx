@@ -15,7 +15,7 @@ import axios from "axios";
 // --- Configuration ---
 // --- Configuration ---
 
-const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/ai`;
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/ai`;
 const POLLING_INTERVAL = 3000;
 
 const CodeReview = () => {
