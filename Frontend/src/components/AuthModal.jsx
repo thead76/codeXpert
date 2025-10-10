@@ -26,7 +26,7 @@ const AuthModal = ({ type, isOpen, onClose }) => {
     password: "",
     confirmPassword: "",
     otp: "",
-    role: "developer",
+    role: "member",
   });
 
   const [error, setError] = useState("");
@@ -45,7 +45,7 @@ const AuthModal = ({ type, isOpen, onClose }) => {
         password: "",
         confirmPassword: "",
         otp: "",
-        role: "developer",
+        role: "member",
       });
     }
   }, [isOpen, type]);

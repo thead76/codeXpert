@@ -12,8 +12,8 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
 
-  // Set the base URL for all API requests
-  axios.defaults.baseURL = "http://localhost:8888/api/v1";
+  // Set the base URL for all API requests using the environment variable
+  axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -21,9 +21,9 @@ export const AuthProvider = ({ children }) => {
         // Set the auth header for all subsequent requests
         axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         try {
-          // Fetch the full user profile from the new backend endpoint
+          // Fetch the full user profile from the backend
           const { data } = await axios.get("/users/profile");
-          setUser(data); // Store the real user object (name, email, role, etc.)
+          setUser(data);
         } catch (error) {
           console.error(
             "Failed to fetch user profile, token might be invalid.",
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const { data } = await axios.post("/auth/login", { email, password });
     localStorage.setItem("token", data.token);
-    setToken(data.token); // This will trigger the useEffect to fetch the profile
+    setToken(data.token);
   };
 
   const sendOtp = async (email) => {
@@ -67,15 +67,11 @@ export const AuthProvider = ({ children }) => {
     setToken(data.token);
   };
 
-  // --- NEW FUNCTION: Send OTP for password reset ---
   const sendPasswordOtp = async () => {
-    // No email is needed because the backend knows who the user is from the token
     await axios.post("/users/profile/send-password-otp");
   };
 
-  // --- NEW FUNCTION: Update the user's password ---
   const updatePassword = async (passwordData) => {
-    // passwordData will be an object like { oldPassword, newPassword } or { otp, newPassword }
     await axios.put("/users/profile/update-password", passwordData);
   };
 
@@ -86,22 +82,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:8888/api/v1/auth/google";
+    // Construct the correct Google Login URL
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
   };
 
-  // --- NEW ---
   const forgotPassword = async (email) => {
     await axios.post("/auth/forgot-password", { email });
   };
 
-  // --- NEW ---
   const resetPassword = async (email, otp, password) => {
     await axios.post("/auth/reset-password", { email, otp, password });
   };
 
   const value = {
     user,
-    setUser, // Expose setUser to allow components like the profile modal to update the context
+    setUser,
     token,
     setToken,
     loading,
@@ -112,11 +107,10 @@ export const AuthProvider = ({ children }) => {
     handleGoogleLogin,
     sendPasswordOtp,
     updatePassword,
-    forgotPassword, // <-- Expose the new function
-    resetPassword, // <-- Expose the new function
+    forgotPassword,
+    resetPassword,
   };
 
-  // Render children only when the initial loading is complete
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}
