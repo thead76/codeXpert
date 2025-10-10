@@ -115,7 +115,7 @@ export const loginUser = async (req, res) => {
 
 export const googleAuthCallback = (req, res) => {
   const token = generateToken(req.user._id);
-  res.redirect(`http://localhost:5173/?token=${token}`);
+  res.redirect(`https://codexpert-khaki.vercel.app/?token=${token}`);
 };
 
 // --- NEW ---
