@@ -3,10 +3,9 @@ import OTP from '../models/otp.model.js';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 
+// --- Setup --- (No changes here)
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // true for 465, false for other ports
+  service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -17,6 +16,16 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
+// --- Controllers ---
+
+// No changes to sendOtpForSignup, loginUser, googleAuthCallback, etc.
+// ... (keep the other functions as they are)
+
+/**
+ * @desc    Send OTP for new user signup
+ * @route   POST /api/v1/auth/send-otp
+ * @access  Public
+ */
 export const sendOtpForSignup = async (req, res) => {
   const { email } = req.body;
   try {
@@ -26,10 +35,6 @@ export const sendOtpForSignup = async (req, res) => {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // --- DEBUG LOG 1 ---
-    // console.log(`[DEBUG] Generated OTP for ${email}: ${otp}`);
-
     await OTP.create({ email, otp });
 
     const mailOptions = {
@@ -38,63 +43,73 @@ export const sendOtpForSignup = async (req, res) => {
       subject: 'Your OTP for CodeXpert Signup',
       text: `Welcome to CodeXpert! Your One-Time Password is: ${otp}`,
     };
-
     await transporter.sendMail(mailOptions);
-    
+
     res.status(200).json({ message: 'OTP sent successfully to your email.' });
 
   } catch (error) {
-    console.error(error);
+    console.error('Error in sendOtpForSignup:', error);
     res.status(500).json({ message: 'Error sending OTP.' });
   }
 };
 
+
+/**
+ * @desc    Verify OTP and register a new user
+ * @route   POST /api/v1/auth/verify-otp
+ * @access  Public
+ */
 export const verifyOtpAndRegister = async (req, res) => {
-  const { name, email, password, otp, role } = req.body; 
-  try {
-    // --- DEBUG LOG 2 ---
-    // console.log(`[DEBUG] Attempting to verify OTP for ${email}.`);
-    // console.log(`[DEBUG]   - OTP from user: ${otp}`);
-    // console.log(`[DEBUG]   - Role from user: ${role}`);
+    const { name, email, password, otp, role } = req.body;
+    try {
+        // This check is good, it prevents trying to create a duplicate user
+        const userExists = await User.findOne({ email });
+        if (userExists) {
+            return res.status(400).json({ message: 'User with this email already exists.' });
+        }
 
-    const otpRecord = await OTP.findOne({ email, otp });
+        const otpRecord = await OTP.findOne({ email, otp });
 
-    // --- DEBUG LOG 3 ---
-    if (!otpRecord) {
-    //   console.log(`[DEBUG] OTP record NOT FOUND in database for email: ${email} and OTP: ${otp}`);
-      // Let's also check if a record for the email exists at all
-      const anyOtpForEmail = await OTP.findOne({ email });
-      if (anyOtpForEmail) {
-          // console.log(`[DEBUG] Found a different OTP for this email: ${anyOtpForEmail.otp}`);
-      } else {
-          console.log(`[DEBUG] No OTP record found for this email address at all.`);
-      }
-      return res.status(400).json({ message: 'Invalid OTP. Please try again.' });
+        if (!otpRecord) {
+            return res.status(400).json({ message: 'Invalid or expired OTP. Please try again.' });
+        }
+
+        // The user creation was failing silently here
+        const user = await User.create({ name, email, password, role });
+
+        // Clean up the OTP record after successful registration
+        await OTP.deleteOne({ _id: otpRecord._id });
+
+        if (user) {
+            res.status(201).json({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role, // also include role in the response
+                token: generateToken(user._id),
+            });
+        } else {
+            // This case is unlikely if create doesn't throw, but good to have
+            res.status(400).json({ message: 'Invalid user data.' });
+        }
+    } catch (error) {
+        // --- THIS IS THE FIX ---
+        // Add specific handling for validation errors from Mongoose
+        console.error('Error in verifyOtpAndRegister:', error);
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ message: `Invalid user data: ${messages.join(', ')}` });
+        }
+        // Fallback for any other unexpected errors
+        res.status(500).json({ message: 'An error occurred during registration.' });
     }
-
-    // --- DEBUG LOG 4 ---
-    console.log(`[DEBUG] OTP record FOUND in database. Proceeding with user creation.`);
-    
-    const user = await User.create({ name, email, password, role });
-    
-    await OTP.deleteOne({ email, otp });
-
-    if (user) {
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid user data.' });
-    }
-  } catch (error) {
-    console.error(error); // Log the full error
-    res.status(500).json({ message: 'Error verifying OTP.' });
-  }
 };
 
+/**
+ * @desc    Authenticate user and get token
+ * @route   POST /api/v1/auth/login
+ * @access  Public
+ */
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -111,62 +126,83 @@ export const loginUser = async (req, res) => {
       res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error in loginUser:', error);
+    res.status(500).json({ message: 'An error occurred during login.' });
   }
 };
 
+/**
+ * @desc    Google OAuth callback
+ * @route   GET /api/v1/auth/google/callback
+ * @access  Public
+ */
 export const googleAuthCallback = (req, res) => {
   const token = generateToken(req.user._id);
-  res.redirect(`https://codexpert-khaki.vercel.app/?token=${token}`);
+  res.redirect(`http://codexpert.online/auth/callback?token=${token}`);
 };
 
-// --- NEW ---
+/**
+ * @desc    Send OTP for password reset
+ * @route   POST /api/v1/auth/forgot-password
+ * @access  Public
+ */
 export const sendPasswordResetOtp = async (req, res) => {
-  const { email } = req.body;
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            // To prevent email enumeration, send a generic success message even if the user doesn't exist.
+            return res.status(200).json({ message: "If a user with this email exists, an OTP has been sent." });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        // Use updateOne with upsert to avoid creating duplicate OTPs for the same user.
+        await OTP.updateOne({ email }, { otp }, { upsert: true });
+
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Your Password Reset OTP for CodeXpert",
+            text: `Your One-Time Password for password reset is: ${otp}. It will expire in 10 minutes.`,
+        };
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ message: "If a user with this email exists, an OTP has been sent." });
+    } catch (error) {
+        console.error('Error in sendPasswordResetOtp:', error);
+        res.status(500).json({ message: "Error sending OTP." });
     }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await OTP.create({ email, otp });
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Your Password Reset OTP for CodeXpert",
-      text: `Your One-Time Password for password reset is: ${otp}`,
-    };
-
-    await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: "OTP sent successfully to your email." });
-  } catch (error) {
-    res.status(500).json({ message: "Error sending OTP." });
-  }
 };
 
-// --- NEW ---
+/**
+ * @desc    Reset password using a valid OTP
+ * @route   POST /api/v1/auth/reset-password
+ * @access  Public
+ */
 export const resetPasswordWithOtp = async (req, res) => {
-  const { email, otp, password } = req.body;
-  try {
-    const otpRecord = await OTP.findOne({ email, otp });
-    if (!otpRecord) {
-      return res.status(400).json({ message: "Invalid OTP." });
+    const { email, otp, password } = req.body;
+    try {
+        const otpRecord = await OTP.findOne({ email, otp });
+        if (!otpRecord) {
+            return res.status(400).json({ message: "Invalid or expired OTP." });
+        }
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            // Should not happen if OTP is valid, but as a safeguard.
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        user.password = password;
+        await user.save();
+
+        // Clean up the OTP record
+        await OTP.deleteOne({ _id: otpRecord._id });
+
+        res.status(200).json({ message: "Password has been reset successfully." });
+    } catch (error) {
+        console.error('Error in resetPasswordWithOtp:', error);
+        res.status(500).json({ message: "Error resetting password." });
     }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    user.password = password;
-    await user.save();
-
-    await OTP.deleteOne({ email, otp });
-
-    res.status(200).json({ message: "Password has been reset successfully." });
-  } catch (error) {
-    res.status(500).json({ message: "Error resetting password." });
-  }
 };

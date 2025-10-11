@@ -16,8 +16,10 @@ const app = express();
 
 // ✅ Allowed Origins
 const allowedOrigins = [
-  "http://localhost:5173",               // Local frontend
-  "https://codexpert-khaki.vercel.app",  // Deployed frontend
+  "http://localhost:5173",
+  "https://codexpert.online",
+  'https://www.codexpert.online',              
+  "https://codexpert-khaki.vercel.app", 
 ];
 
 // ✅ Dynamic CORS middleware
