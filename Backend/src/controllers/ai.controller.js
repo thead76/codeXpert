@@ -71,7 +71,7 @@ export async function findBugs(req, res) {
 /**
  * Controller for the chatbot.
  */
-export async function chat(req, res) {
+export async function handleChat(req, res) {
     const { message } = req.body;
 
     if (!message || typeof message !== 'string') {

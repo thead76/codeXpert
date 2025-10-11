@@ -17,7 +17,7 @@ router.post('/bugs', aiController.findBugs);
 
 // New route for the chatbot
 // POST /api/v1/analyze/chat
-router.post('/chat', aiController.chat);
+router.post('/chat', aiController.handleChat);
 
 // Route to check the status and get the result of the analysis
 // GET /api/v1/analyze/status/:jobId
