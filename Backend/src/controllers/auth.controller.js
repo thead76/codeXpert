@@ -1,25 +1,17 @@
 import User from '../models/user.model.js';
 import OTP from '../models/otp.model.js';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
+// --- 1. IMPORT RESEND ---
+import { Resend } from 'resend';
 
-// --- Setup --- (No changes here)
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// --- 2. INITIALIZE RESEND WITH YOUR API KEY ---
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
 // --- Controllers ---
-
-// No changes to sendOtpForSignup, loginUser, googleAuthCallback, etc.
-// ... (keep the other functions as they are)
 
 /**
  * @desc    Send OTP for new user signup
@@ -37,13 +29,13 @@ export const sendOtpForSignup = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     await OTP.create({ email, otp });
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
+    // --- 3. SEND OTP USING RESEND ---
+    await resend.emails.send({
+      from: 'OTP Verification <noreply@codexpert.online>', // Must be from your verified domain
       to: email,
       subject: 'Your OTP for CodeXpert Signup',
-      text: `Welcome to CodeXpert! Your One-Time Password is: ${otp}`,
-    };
-    await transporter.sendMail(mailOptions);
+      html: `<p>Welcome to CodeXpert! Your One-Time Password is: <strong>${otp}</strong></p>`,
+    });
 
     res.status(200).json({ message: 'OTP sent successfully to your email.' });
 
@@ -62,7 +54,6 @@ export const sendOtpForSignup = async (req, res) => {
 export const verifyOtpAndRegister = async (req, res) => {
     const { name, email, password, otp, role } = req.body;
     try {
-        // This check is good, it prevents trying to create a duplicate user
         const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(400).json({ message: 'User with this email already exists.' });
@@ -74,10 +65,8 @@ export const verifyOtpAndRegister = async (req, res) => {
             return res.status(400).json({ message: 'Invalid or expired OTP. Please try again.' });
         }
 
-        // The user creation was failing silently here
         const user = await User.create({ name, email, password, role });
 
-        // Clean up the OTP record after successful registration
         await OTP.deleteOne({ _id: otpRecord._id });
 
         if (user) {
@@ -85,22 +74,18 @@ export const verifyOtpAndRegister = async (req, res) => {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role, // also include role in the response
+                role: user.role,
                 token: generateToken(user._id),
             });
         } else {
-            // This case is unlikely if create doesn't throw, but good to have
             res.status(400).json({ message: 'Invalid user data.' });
         }
     } catch (error) {
-        // --- THIS IS THE FIX ---
-        // Add specific handling for validation errors from Mongoose
         console.error('Error in verifyOtpAndRegister:', error);
         if (error.name === 'ValidationError') {
             const messages = Object.values(error.errors).map(val => val.message);
             return res.status(400).json({ message: `Invalid user data: ${messages.join(', ')}` });
         }
-        // Fallback for any other unexpected errors
         res.status(500).json({ message: 'An error occurred during registration.' });
     }
 };
@@ -138,7 +123,8 @@ export const loginUser = async (req, res) => {
  */
 export const googleAuthCallback = (req, res) => {
   const token = generateToken(req.user._id);
-  res.redirect(`http://codexpert.online/auth/callback?token=${token}`);
+  // Redirect to your frontend, passing the token
+  res.redirect(`https://codexpert.online/auth/callback?token=${token}`);
 };
 
 /**
@@ -151,22 +137,19 @@ export const sendPasswordResetOtp = async (req, res) => {
     try {
         const user = await User.findOne({ email });
         if (!user) {
-            // To prevent email enumeration, send a generic success message even if the user doesn't exist.
             return res.status(200).json({ message: "If a user with this email exists, an OTP has been sent." });
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        // Use updateOne with upsert to avoid creating duplicate OTPs for the same user.
         await OTP.updateOne({ email }, { otp }, { upsert: true });
 
-
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
+        // --- 4. SEND PASSWORD RESET OTP USING RESEND ---
+        await resend.emails.send({
+            from: 'Password Reset <noreply@codexpert.online>', // Must be from your verified domain
             to: email,
-            subject: "Your Password Reset OTP for CodeXpert",
-            text: `Your One-Time Password for password reset is: ${otp}. It will expire in 10 minutes.`,
-        };
-        await transporter.sendMail(mailOptions);
+            subject: 'Your Password Reset OTP for CodeXpert',
+            html: `<p>Your One-Time Password for password reset is: <strong>${otp}</strong>. It will expire in 10 minutes.</p>`,
+        });
 
         res.status(200).json({ message: "If a user with this email exists, an OTP has been sent." });
     } catch (error) {
@@ -190,14 +173,12 @@ export const resetPasswordWithOtp = async (req, res) => {
 
         const user = await User.findOne({ email });
         if (!user) {
-            // Should not happen if OTP is valid, but as a safeguard.
             return res.status(404).json({ message: "User not found." });
         }
 
         user.password = password;
         await user.save();
 
-        // Clean up the OTP record
         await OTP.deleteOne({ _id: otpRecord._id });
 
         res.status(200).json({ message: "Password has been reset successfully." });
