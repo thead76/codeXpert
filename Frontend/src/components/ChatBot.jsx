@@ -84,7 +84,7 @@ const ChatBot = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50">
       {!isOpen && (
         <motion.button
           initial={{ scale: 0 }}
@@ -103,7 +103,7 @@ const ChatBot = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="w-96 h-[600px] bg-[#0f0425] text-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-indigo-500/50"
+            className="w-[90vw] h-[75vh] md:w-96 md:h-[600px] bg-[#0f0425] text-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-indigo-500/50"
           >
             <div className="bg-gradient-to-r from-indigo-500 to-pink-500 px-4 py-3 flex justify-between items-center">
               <h2 className="font-bold text-lg">CodeXpert Assistant</h2>
